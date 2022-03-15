@@ -6,6 +6,7 @@
 class Mypath:
     x = None
     y = None
+    z = None
     phi = None 
     v = None
     w = None
