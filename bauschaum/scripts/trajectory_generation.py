@@ -15,7 +15,7 @@ class trajectory_generation():
     def __init__(self):
         rospy.init_node("trajectory_generation_node")
         rospy.Subscriber("mir_path", Path, self.mir_path_cb)
-        rospy.Subscriber("mir_path", Path, self.ur_path_cb)
+        rospy.Subscriber("ur_path", Path, self.ur_path_cb)
         self.config()
         
         self.target_reached = False
@@ -82,7 +82,8 @@ class trajectory_generation():
 
     def compute_trajectory(self):
         
-        index = 1
+        mir_index = 1
+        ur_index = 1
         current_velocity_lin = 0.0
         mir_current_velocity_lin = 0.0
         ur_current_velocity_lin = 0.0
@@ -120,43 +121,43 @@ class trajectory_generation():
 
             if mir_dist + mir_current_velocity_lin >= mir_path_distance:
                 while mir_dist + mir_current_velocity_lin >= mir_path_distance and not rospy.is_shutdown():
-                    index += 1
-                    if index > len(self.mir_path.v)-2:
+                    mir_index += 1
+                    if mir_index > len(self.mir_path.v)-2:
                         self.target_reached = True
                         print("target reached")
                         break
                     else:
-                        mir_path_distance += self.mir_path.v[index]
+                        mir_path_distance += self.mir_path.v[mir_index]
 
             if ur_dist + ur_current_velocity_lin >= ur_path_distance:
                 while ur_dist + ur_current_velocity_lin >= ur_path_distance and not rospy.is_shutdown():
-                    index += 1
-                    if index > len(self.ur_path.v)-2:
+                    ur_index += 1
+                    if ur_index > len(self.ur_path.v)-2:
                         self.target_reached = True
                         print("target reached")
                         break
                     else:
-                        ur_path_distance += self.ur_path.v[index]
+                        ur_path_distance += self.ur_path.v[ur_index]
 
 
-            mir_dist_to_cp = sqrt((self.mir_path.y[index]-mir_target_pose.y)**2 + (self.mir_path.x[index]-mir_target_pose.x)**2)
+            mir_dist_to_cp = sqrt((self.mir_path.y[mir_index]-mir_target_pose.y)**2 + (self.mir_path.x[mir_index]-mir_target_pose.x)**2)
             if mir_dist_to_cp<mir_current_velocity_lin:
-                index += 1
-            if index >= len(self.mir_path.y):
+                mir_index += 1
+            if mir_index >= len(self.mir_path.y):
                 break
 
-            ur_dist_to_cp = sqrt((self.ur_path.y[index]-ur_target_pose.y)**2 + (self.ur_path.x[index]-ur_target_pose.x)**2 + (self.ur_path.z[index]-ur_target_pose.z)**2)
+            ur_dist_to_cp = sqrt((self.ur_path.y[ur_index]-ur_target_pose.y)**2 + (self.ur_path.x[ur_index]-ur_target_pose.x)**2 + (self.ur_path.z[ur_index]-ur_target_pose.z)**2)
             if ur_dist_to_cp<ur_current_velocity_lin:
-                index += 1
-            if index >= len(self.ur_path.y):
+                ur_index += 1
+            if ur_index >= len(self.ur_path.y):
                 break
 
 
-            mir_target_angle = atan2(self.mir_path.y[index]-mir_target_pose.y, self.mir_path.x[index]-mir_target_pose.x)
-            ur_target_angle_horizontal = atan2(self.ur_path.y[index]-ur_target_pose.y, self.ur_path.x[index]-ur_target_pose.x)
-            ur_target_angle_vertical = atan2(self.ur_path.z[index]-ur_target_pose.z, sqrt((self.ur_path.y[index]-ur_target_pose.y)**2 + (self.ur_path.x[index]-ur_target_pose.x)**2))
+            mir_target_angle = atan2(self.mir_path.y[mir_index]-mir_target_pose.y, self.mir_path.x[mir_index]-mir_target_pose.x)
+            ur_target_angle_horizontal = atan2(self.ur_path.y[ur_index]-ur_target_pose.y, self.ur_path.x[ur_index]-ur_target_pose.x)
+            ur_target_angle_vertical = atan2(self.ur_path.z[ur_index]-ur_target_pose.z, sqrt((self.ur_path.y[ur_index]-ur_target_pose.y)**2 + (self.ur_path.x[ur_index]-ur_target_pose.x)**2))
 
-            print(ur_target_angle_vertical,ur_target_angle_horizontal)
+            #print(ur_target_angle_vertical,ur_target_angle_horizontal)
 
             mir_w_target=mir_target_angle-mir_current_angle
 
@@ -179,13 +180,15 @@ class trajectory_generation():
             self.mir_target_path.y.append(mir_target_pose.y)
             self.ur_target_path.x.append(ur_target_pose.x)
             self.ur_target_path.y.append(ur_target_pose.y)
+            self.ur_target_path.z.append(ur_target_pose.z)
 
 
         self.mir_xhat = savgol_filter(self.mir_target_path.x, 51, 3) # window size 51, polynomial order 3
         self.mir_yhat = savgol_filter(self.mir_target_path.y, 51, 3) # window size 51, polynomial order 3
         self.ur_xhat = savgol_filter(self.ur_target_path.x, 51, 3) # window size 51, polynomial order 3
         self.ur_yhat = savgol_filter(self.ur_target_path.y, 51, 3) # window size 51, polynomial order 3
-   
+        self.ur_zhat = savgol_filter(self.ur_target_path.z, 51, 3) # window size 51, polynomial order 3
+
         self.trajectory_publisher()
 
        ### Plot ####
@@ -236,8 +239,10 @@ class trajectory_generation():
         for i in range(0,len(self.ur_xhat)): #len(robot0_xhat)
             ur_trajectory_point.pose.position.x = self.ur_xhat[i]
             ur_trajectory_point.pose.position.y = self.ur_yhat[i]
+            ur_trajectory_point.pose.position.z = self.ur_zhat[i]
             ur_trajectory.poses[i].pose.position.x = ur_trajectory_point.pose.position.x
             ur_trajectory.poses[i].pose.position.y = ur_trajectory_point.pose.position.y
+            ur_trajectory.poses[i].pose.position.z = ur_trajectory_point.pose.position.z
 
         rospy.sleep(1)
         mir_pub.publish(mir_trajectory)
