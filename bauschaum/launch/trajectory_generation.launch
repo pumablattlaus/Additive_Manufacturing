@@ -1,0 +1,19 @@
+<launch>
+
+    <arg name="set_pose_topic" default="/virtual_master/set_pose"/>
+    <arg name="cmd_vel_topic" default="/virtual_master/cmd_vel"/>
+    <arg name="master_pose_topic" default="/virtual_master/master_pose"/>
+    <arg name="master_vel_topic" default="/virtual_master/master_vel"/>
+
+    <!-- <node name="compute_velocity_dynamic" type="compute_velocity_dynamic.py" pkg="formation_controller" output="screen">
+            <rosparam command="load" file="$(find formation_controller)/config/trajectory_generation_config.yaml"/>
+    </node> -->
+
+
+    <node name="execute_trajectories" type="execute_trajectories_dynamic.py" pkg="formation_controller" output="screen">
+            <rosparam command="load" file="$(find bauschaum)/config/trajectory_generation_config.yaml"/>
+    </node>
+
+ 
+
+</launch>
