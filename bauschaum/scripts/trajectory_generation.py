@@ -251,8 +251,8 @@ class trajectory_generation():
         rospy.sleep(1)
 
     def config(self):
-        self.mir_target_vel_lin = 0.1
-        self.ur_target_vel_lin = 0.1
+        self.mir_target_vel_lin = 0.5
+        self.ur_target_vel_lin = 0.5
         self.control_rate = 100
         self.ur_acc_limit_lin = 0.5
         self.mir_acc_limit_lin = 0.5
