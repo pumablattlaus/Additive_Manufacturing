@@ -1,0 +1,10 @@
+<launch>
+
+
+    <include file="$(find mur_launch_hardware)/launch/mur.launch"  pass_all_args="true"/>
+
+    <include file="$(find dynamixel_workbench_controllers)/launch/dynamixel_controllers.launch"  pass_all_args="true"/>
+
+
+
+</launch>
