@@ -1,6 +1,5 @@
-#! /usr/bin/env python3
+#! /usr/bin/env python
 
-from pathlib import Path
 import rospy
 from tf import transformations
 from MIR_X import mir_x
@@ -73,7 +72,7 @@ class parse_path_trafo():
         for i in range(0,len(self.wall_x)): #len(robot0_xhat)
             self.ur_path_point.pose.position.x = self.x + self.wall_x[i] * self.R[0][0] + self.wall_y[i] * self.R[0][1]
             self.ur_path_point.pose.position.y = self.y + self.wall_x[i] * self.R[1][0] + self.wall_y[i] * self.R[1][1]
-            self.ur_path_point.pose.position.z = self.z + self.wall_z[i]
+            self.ur_path_point.pose.position.z = self.z + self.wall_z[i] + 0.3
 
             self.ur_path.poses[i].pose.position.x = self.ur_path_point.pose.position.x
             self.ur_path.poses[i].pose.position.y = self.ur_path_point.pose.position.y

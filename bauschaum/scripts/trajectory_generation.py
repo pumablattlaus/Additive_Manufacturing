@@ -12,6 +12,16 @@ from geometry_msgs.msg import PoseStamped
 class trajectory_generation():
 
 
+
+    def config(self):
+        self.mir_target_vel_lin = 0.06
+        self.ur_target_vel_lin = 0.1
+        self.control_rate = 100
+        self.ur_acc_limit_lin = 0.3
+        self.mir_acc_limit_lin = 0.3
+        self.w_limit = 1.0  # does nothing
+
+
     def __init__(self):
         rospy.init_node("trajectory_generation_node")
         rospy.Subscriber("mir_path", Path, self.mir_path_cb)
@@ -193,24 +203,24 @@ class trajectory_generation():
 
        ### Plot ####
         
+        rospy.loginfo("trajecotry computation complete")
 
+        # f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+        # ax2.plot(self.mir_path.x,self.mir_path.y)
+        # ax1.plot(self.ur_xhat,self.ur_yhat)
+        # plt.show()
 
-        f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
-        ax2.plot(self.mir_path.x,self.mir_path.y)
-        ax1.plot(self.ur_xhat,self.ur_yhat)
-        plt.show()
-
-        mir_v = [0.0]
-        mir_w = [atan2(self.mir_yhat[1]-self.mir_yhat[0], self.mir_xhat[1]-self.mir_xhat[0])]
+        # mir_v = [0.0]
+        # mir_w = [atan2(self.mir_yhat[1]-self.mir_yhat[0], self.mir_xhat[1]-self.mir_xhat[0])]
         
-        for i in range(1,len(self.mir_xhat)):
-            mir_v.append(100*sqrt((self.mir_xhat[i]-self.mir_xhat[i-1])**2+(self.mir_yhat[i]-self.mir_yhat[i-1])**2))
-            mir_w.append(atan2(self.mir_yhat[i]-self.mir_yhat[i-1], self.mir_xhat[i]-self.mir_xhat[i-1]))
+        # for i in range(1,len(self.mir_xhat)):
+        #     mir_v.append(100*sqrt((self.mir_xhat[i]-self.mir_xhat[i-1])**2+(self.mir_yhat[i]-self.mir_yhat[i-1])**2))
+        #     mir_w.append(atan2(self.mir_yhat[i]-self.mir_yhat[i-1], self.mir_xhat[i]-self.mir_xhat[i-1]))
     
-        plt.figure()
-        plt.plot(mir_v)
-        plt.plot(mir_w)
-        plt.show()
+        # plt.figure()
+        # plt.plot(mir_v)
+        # plt.plot(mir_w)
+        # plt.show()
 
 
 
@@ -250,13 +260,6 @@ class trajectory_generation():
         ur_pub.publish(ur_trajectory)
         rospy.sleep(1)
 
-    def config(self):
-        self.mir_target_vel_lin = 0.5
-        self.ur_target_vel_lin = 0.5
-        self.control_rate = 100
-        self.ur_acc_limit_lin = 0.5
-        self.mir_acc_limit_lin = 0.5
-        self.w_limit = 1.0  # does nothing
 
 
 
