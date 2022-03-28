@@ -1,7 +1,15 @@
 publish_rate: 100
+timeout: 0.1
 max_vel_lin_x: 0.2
 max_vel_lin_y: 0.2
 max_vel_lin_z: 0.2
 max_vel_ang_x: 0.2
 max_vel_ang_y: 0.2
 max_vel_ang_z: 0.2
+
+max_acc_lin_x: 0.001
+max_acc_lin_y: 0.001
+max_acc_lin_z: 0.001
+max_acc_ang_x: 0.001
+max_acc_ang_y: 0.001
+max_acc_ang_z: 0.001
