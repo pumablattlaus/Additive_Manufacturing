@@ -1,10 +1,14 @@
 <launch>
+    <node pkg="bauschaum_mir" type="servo_driver.py" name="servo_driver" output="screen"/>
 
+    <include file="$(find mur_launch_hardware)/launch/mur.launch"  />
 
-    <include file="$(find mur_launch_hardware)/launch/mur.launch"  pass_all_args="true"/>
+    <include file="$(find dynamixel_workbench_controllers)/launch/dynamixel_controllers.launch"  />
 
-    <include file="$(find dynamixel_workbench_controllers)/launch/dynamixel_controllers.launch"  pass_all_args="true"/>
+    <node name="vel_republisher" type="vel_republisher.py" pkg="bauschaum_controller" output="screen">
+        <rosparam command="load" file="$(find bauschaum_mir)/config/ur_command_smoother.yaml"/>
+    </node>
 
-
+    <include file="$(find keyence_scanner)/launch/load_lj_v7200.launch"  />
 
 </launch>

@@ -1,0 +1,7 @@
+publish_rate: 100
+max_vel_lin_x: 0.2
+max_vel_lin_y: 0.2
+max_vel_lin_z: 0.2
+max_vel_ang_x: 0.2
+max_vel_ang_y: 0.2
+max_vel_ang_z: 0.2
