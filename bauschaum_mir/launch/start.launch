@@ -5,7 +5,7 @@
 
     <include file="$(find dynamixel_workbench_controllers)/launch/dynamixel_controllers.launch"  />
 
-    <node name="vel_republisher" type="vel_republisher.py" pkg="bauschaum_controller" output="screen">
+    <node name="ur_command_smoother" type="ur_command_smoother.py" pkg="ur_controllers" output="screen">
         <rosparam command="load" file="$(find bauschaum_mir)/config/ur_command_smoother.yaml"/>
     </node>
 
