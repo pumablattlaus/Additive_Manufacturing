@@ -14,7 +14,7 @@ class trajectory_generation():
 
 
     def config(self):
-        self.mir_target_vel_lin = 0.06
+        self.mir_target_vel_lin = 0.2
         self.ur_target_vel_lin = 0.1
         self.control_rate = 100
         self.ur_acc_limit_lin = 0.3
