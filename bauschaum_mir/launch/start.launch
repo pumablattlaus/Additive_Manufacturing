@@ -11,4 +11,6 @@
 
     <include file="$(find keyence_scanner)/launch/load_lj_v7200.launch"  />
 
+    <node pkg="tf2_ros" type="static_transform_publisher" name="keyence_transform" args="-0.003 -0.0468 0.42261 1 0 0 0 tool0 sensor_optical_frame" output="screen"/>
+
 </launch>
