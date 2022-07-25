@@ -74,12 +74,16 @@ class SpawnModel_test():
             #print(self.to_be_deleted)
             model_states = data
 
+            poses_list = []
+
             for i in range(0,len(self.to_be_deleted)):
                 if self.to_be_deleted[i] in model_states.name:
                     model_name = self.to_be_deleted[i]
-                    self.to_be_deleted.pop(i)
-                    pose = data.pose.pop(model_states.name.index(model_name))
-                    print(pose)
+                    #self.to_be_deleted.pop(i)
+                    poses_list.append(data.pose[model_states.name.index(model_name)])
+
+            for i in range(0,len(self.to_be_deleted)):
+                    model_name = self.to_be_deleted[i]
                     delete_model = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
                     delete_model(model_name)
 
@@ -87,11 +91,12 @@ class SpawnModel_test():
                     model_name=model_name,
                     model_xml=open('/usr/share/gazebo-11/models/particle_sphere_solid/model.sdf', 'r').read(),
                     robot_namespace='/foo',
-                    initial_pose=pose,
+                    initial_pose=poses_list[i],
                     reference_frame='world'
                     )
-            self.timestamp_old = now
 
+            self.timestamp_old = now
+            self.to_be_deleted = []
 
 
     def ground_truth_callback(self,data = Odometry()):
