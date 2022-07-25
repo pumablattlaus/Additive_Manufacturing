@@ -1,0 +1,142 @@
+<?xml version="1.0" ?>
+<sdf version="1.4">
+  <world name="default">
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere1</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere2</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere3</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    
+    
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere4</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere5</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere6</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere7</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere8</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere9</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    
+    
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere10</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere11</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere12</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <include>
+      <uri>model://testing_surface</uri>
+      <name>testing_surface1</name>
+      <pose>-3 0 0.5 0 1.57 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://testing_surface</uri>
+      <name>testing_surface1</name>
+      <pose>0 -3 0.5 1.57 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://testing_surface</uri>
+      <name>testing_surface1</name>
+      <pose>0 0 3.0 0 0 0</pose>
+    </include>
+
+    <joint name = "joint_to_world" type="fixed">
+      <parent>world</parent>
+      <child>testing_surface_link::link</child>
+    </joint>
+
+
+    <atmosphere type='adiabatic'/>
+    <scene>
+      <sky>
+        <clouds>
+          <speed>12</speed>
+        </clouds>
+      </sky>
+    </scene>
+
+    <physics name='default_physics' default='0' type='ode'>
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+
+
+    <!-- reference to your plugin -->
+    <plugin name="particle_shooter_plugin" filename="libparticle_shooter_plugin.so">
+      <reset_frequency>10.0</reset_frequency>
+      <x_axis_force>0.0</x_axis_force>
+      <y_axis_force>-5000.0</y_axis_force>
+      <z_axis_force>0.0</z_axis_force>
+      
+      <x_origin>0.0</x_origin>
+      <y_origin>0.0</y_origin>
+      <z_origin>0.5</z_origin>
+      
+      <random_range>0.5</random_range>
+      
+    </plugin>
+
+  </world>
+</sdf>
