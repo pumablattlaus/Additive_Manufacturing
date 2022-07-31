@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<launch>
-    <node name="spawn_996gt3" pkg="gazebo_ros" type="spawn_model" args="-sdf -model 996gt3 -file $(find particle_shooter)/models/particle_sphere/model.sdf -x -8 -y 7 -Y -1.5707963267948966" respawn="false"  />
-</launch>
