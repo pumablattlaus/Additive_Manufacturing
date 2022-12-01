@@ -1,0 +1,30 @@
+<launch>
+
+    <arg name="set_pose_topic" default="/virtual_master/set_pose"/>
+    <arg name="cmd_vel_topic" default="/virtual_master/cmd_vel"/>
+    <arg name="master_pose_topic" default="/virtual_master/master_pose"/>
+    <arg name="master_vel_topic" default="/virtual_master/master_vel"/>
+
+    <arg name="tf_prefix"    default="mur216" />
+    <arg name="model_name" default="mur216"/>
+    <arg name="prefix" value="UR16/" doc="Prefix for the UR16 links"/>
+
+    <group ns = "$(arg model_name)">
+
+        <node name="parse_path_trafo" type="parse_path_trafo_circle.py" pkg="match_amc" output="screen"/>
+
+        <node name="trajectory_generation" type="trajectory_generation.py" pkg="match_amc" output="screen"/>
+
+
+        <node name="execute_trajectories" type="execute_trajectories_dynamic.py" pkg="match_amc" output="screen">
+                <rosparam command="load" file="$(find match_amc)/config/trajectory_generation_config.yaml"/>
+        </node>
+
+        <node name="ur_start_pose" type="ur_start_pose.py" pkg="match_amc" output="screen"/> 
+
+        <!-- <node name="ur_execute_trajectory" type="ur_execute_trajectory.py" pkg="mur_sb" output="screen">
+                <rosparam command="load" file="$(find bauschaum)/config/trajectory_generation_config.yaml"/>
+        </node> -->
+    </group>
+    <!-- <node name="ur_start_pose" type="ur_start_pose.py" pkg="mur_sb" output="screen"/>  -->
+</launch>
