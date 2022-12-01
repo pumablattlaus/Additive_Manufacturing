@@ -3,7 +3,7 @@
 import rospy
 import tf
 from tf import transformations
-from mypath import MyTrajectory
+from custom_path import MyTrajectory
 from nav_msgs.msg import Path
 import math
 from geometry_msgs.msg import Twist, PoseWithCovarianceStamped, Pose

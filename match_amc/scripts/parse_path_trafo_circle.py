@@ -5,13 +5,12 @@
 import rospy
 import tf
 from tf import transformations
-from match_amc.path_files import circle_mirx as mir_x
-from circle_mirx import circle_mirx as mir_x
-from circle_miry import circle_miry as mir_y
+from path_files.circle_mirx import circle_mirx as mir_x
+from path_files.circle_miry import circle_miry as mir_y
 
-from circle_urx import circle_urx as wall_x
-from circle_ury import circle_ury as wall_y
-from circle_urz import circle_urz as wall_z
+from path_files.circle_urx import circle_urx as wall_x
+from path_files.circle_ury import circle_ury as wall_y
+from path_files.circle_urz import circle_urz as wall_z
 
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped

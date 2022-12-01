@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 from math import atan2, sqrt, cos, sin
-from mypath import Mypath
+from custom_path import Mypath
 import rospy
 from nav_msgs.msg import Path
 from scipy.signal import savgol_filter
