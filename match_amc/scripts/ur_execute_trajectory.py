@@ -15,8 +15,8 @@ import tf
 from sensor_msgs.msg import JointState
 #import csv
 
-from formation_controller.match_lib.robot_mats.jacobians.jacobian_ur_16_eef import getJacobianUr16_base_link_inertiaUr16_wrist_3_link as getJacobian
-from formation_controller.match_lib.match_robots import Joints
+from match_lib.robot_mats.jacobians.jacobian_ur_16_eef import getJacobianUr16_base_link_inertiaUr16_wrist_3_link as getJacobian
+from match_lib.match_robots import Joints
 class ur_velocity_controller():
     
     
