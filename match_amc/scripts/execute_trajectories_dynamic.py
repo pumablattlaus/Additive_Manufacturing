@@ -22,10 +22,6 @@ class execute_trajectories_node():
         rospy.loginfo("lyapunov controller running")
         rospy.set_param("/mir_initialized",False)
         self.config()
-        
-
-
-
 
     def run(self):
         rospy.loginfo(f"waiting for trajecories{len(self.target_trajectories)}")
@@ -138,63 +134,37 @@ class execute_trajectories_node():
             
             
         #### Main loop #####  
-        #rate = rospy.Rate(self.control_rate)
-        
+        rate = rospy.Rate(self.control_rate)
         while not rospy.is_shutdown() and idx < len(self.target_trajectories[0].v):
-            rate =rospy.Rate(self.compute_rate())
-            w_filtered = 0.0
-            v_filtered = 0.0
             for i in range(0,self.number_of_robots):
-                act_pose        = self.robot_poses[i]
-                set_pose_x      = self.target_trajectories[i].x[idx]
-                set_pose_y      = self.target_trajectories[i].y[idx]
-                set_pose_phi    = self.target_trajectories[i].phi[idx]
-                w_target        = self.target_trajectories[i].w[idx] * self.control_rate
-                v_target        = self.target_trajectories[i].v[idx] * self.control_rate
-                v_filtered      = v_filtered * (1-self.filter_const_vel) + v_target * self.filter_const_vel
-                w_filtered      = w_filtered * (1-self.filter_const) + w_target * self.filter_const 
-                u_v, u_w = cartesian_controller(act_pose,set_pose_x,set_pose_y,w_filtered,v_target,set_pose_phi)
+                actual_pose     = self.robot_poses[i]
+
+                target_pose     = Pose()
+                target_pose.position.x = self.target_trajectories[i].x[idx]
+                target_pose.position.y = self.target_trajectories[i].y[idx]
+                q = transformations.quaternion_from_euler(0,0,self.target_trajectories[i].phi[idx])
+                target_pose.orientation.x = q[0]
+                target_pose.orientation.y = q[1]
+                target_pose.orientation.z = q[2]
+                target_pose.orientation.w = q[3]
+
+                target_velocity = Twist()
+                target_velocity.linear.x = self.target_trajectories[i].v[idx] * self.control_rate
+                target_velocity.angular.z = self.target_trajectories[i].w[idx] * self.control_rate
+
+                u_v, u_w = cartesian_controller(actual_pose,target_pose,target_velocity)
+                rospy.loginfo_throttle(1, "u_v: %f, u_w: %f", u_v, u_w)
+                rospy.loginfo_throttle(1, "target velocity= " + str(target_velocity.linear.x))
 
                 self.robot_command.linear.x = u_v
                 self.robot_command.angular.z = u_w
                 self.cmd_vel_publishers[i].publish(self.robot_command)
-                self.target_pose_broadcaster([set_pose_x,set_pose_y,set_pose_phi],i)
-                self.actual_pose_broadcaster(act_pose,i)
+
+                self.target_pose_broadcaster(target_pose,i)
+                # self.actual_pose_broadcaster(actual_pose,i)
 
             idx += 1
-            #rospy.loginfo(idx)
             rate.sleep()
-
-
-    def compute_rate(self):
-        
-        Kp = 100.0
-        angle_error = math.pi/2 - self.ur_base_angle
-        self.multiplicator = self.control_rate - Kp * angle_error
-        
-        if self.multiplicator < 1.0:
-            #rospy.logerr_throttle("control rate negative")
-            self.multiplicator = 1.0
-        elif self.multiplicator > 150.0:
-            self.multiplicator = 150.0
-            
-        rospy.loginfo_throttle(1,"Multiplicator: " + str(self.multiplicator))
-        rospy.loginfo_throttle(1,"Angle UR: " + str(self.ur_base_angle))
-            
-        return self.multiplicator
-        
-        # if (math.pi/6) < self.ur_base_angle < (math.pi/2):
-        #     ratio = (self.ur_base_angle - math.pi/6) / (math.pi/2 - math.pi/6)
-        #     self.multiplicator = actual_rate * pow(ratio, 0.5)
-        # elif (math.pi * 0.75) > self.ur_base_angle > (math.pi/2):
-        #     ratio = self.ur_base_angle / (math.pi/2)
-        #     actual_rate = actual_rate * ratio
-        # else:
-        #     actual_rate = 1
-        
-
-            
-        
 
 
     def trajectory_cb(self,Path,robot_index):
@@ -225,8 +195,8 @@ class execute_trajectories_node():
 
     def target_pose_broadcaster(self,target_pose,robot_id):
         frame_id = "robot" + str(robot_id) + "/target_pose"
-        self.pose_broadcaster.sendTransform((target_pose[0], target_pose[1], 0),
-                     tf.transformations.quaternion_from_euler(0, 0, target_pose[2]),
+        self.pose_broadcaster.sendTransform((target_pose.position.x, target_pose.position.y, 0),
+                     (target_pose.orientation.x, target_pose.orientation.y, target_pose.orientation.z, target_pose.orientation.w),
                      rospy.Time.now(), frame_id, "map")
 
     def actual_pose_broadcaster(self,actual_pose,robot_id):

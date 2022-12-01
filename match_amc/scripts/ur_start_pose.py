@@ -13,7 +13,7 @@ from std_msgs.msg import Bool, Float64MultiArray
 from tf import transformations
 from nav_msgs.msg import Path
 import tf
-from bauschaum.match_lib.match_geometry import inverseTransformationMat
+from match_lib.match_geometry import inverseTransformationMat
 from controller_manager_msgs.srv import SwitchController
 
 np.set_printoptions(precision=8,suppress=True)
