@@ -70,6 +70,7 @@ class robot():
         rospy.set_param("/ur_initialized", False) 
         first_call = True
         #### Wait for Initialization ####
+        rospy.loginfo("Wait for ur path...")
         path = rospy.wait_for_message("ur_path", Path)
         # path = rospy.wait_for_message("ur_trajectory", Path)
         self.path=path

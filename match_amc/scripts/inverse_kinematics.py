@@ -291,12 +291,15 @@ class Inverse_kinematics():
 
         # Final selection from previous selection uses difference between solution and current joint angle 
         difference_solutions = []   # TODO: calc in solution_min_diff?
-        for i in range(8):
-            temp_diff_array = []
-            for k in range(6):
-                temp_diff_array.append(solutions[i][k] - self.joint_values[k])
-            difference_solutions.append(temp_diff_array)
-
+        try:
+            for i in range(8):
+                temp_diff_array = []
+                for k in range(6):
+                    temp_diff_array.append(solutions[i][k] - self.joint_values[k])
+                difference_solutions.append(temp_diff_array)
+        except:
+            rospy.logerr("Error in select_solution. difference_solutions")
+            
         if first:
             a = self.solution_min_diff(solutions, difference_solutions, first)
             return a

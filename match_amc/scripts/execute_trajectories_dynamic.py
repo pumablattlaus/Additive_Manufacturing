@@ -65,7 +65,8 @@ class execute_trajectories_node():
                     correct_orientation += 1
                 self.cmd_vel_publishers[i].publish(self.robot_command)
             
-                rospy.logdebug(e_phi)
+                rospy.loginfo("turnung",e_phi)
+
 
         rospy.set_param("/mir_initialized",True)
         rospy.loginfo("MiR initialized")
