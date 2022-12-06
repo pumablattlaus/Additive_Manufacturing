@@ -244,6 +244,8 @@ class ur_velocity_controller():
             
             #position controller
             u_x, u_y, u_z, distance, dis_x, dis_y = self.position_controller(set_pose_x, set_pose_y, set_pose_z, trans[0], trans[1], trans[2])
+            #print("distance: ", distance, "dis_x: ", dis_x, "dis_y: ", dis_y)
+            print(set_pose_y,trans[1])
             tcp_initial_vel = self.get_tcp_initial_vel()    # only the part induced by mir to world velocity 
             target_tcp_vel = self.trajectory_velocity(set_pose_phi, v_target)
 
@@ -253,14 +255,15 @@ class ur_velocity_controller():
             
             #TCP velocity in ur_base_link
             tcp_vel_ur = [final_tcp_vel_mir_base[0], final_tcp_vel_mir_base[1], u_z, 0, 0, 0]
-            tcp_vel_ur = [u_x,u_y , u_z, 0, 0, 0]
+            tcp_vel_ur = [-u_x,-u_y , u_z, 0, 0, 0]
+            #tcp_vel_ur = [0.0,0.05 , 0, 0, 0, 0]
+            #print("tcp_vel_ur: ", tcp_vel_ur)
             #rospy.loginfo("tcp_vel_ur: x,y=" + str(tcp_vel_ur[0]) + "," + str(tcp_vel_ur[1]))
             joint_group_vel = self.differential_inverse_kinematics_ur(tcp_vel_ur)
             #rospy.loginfo("joint_group_vel: " + str(joint_group_vel.data)+"\nfor jointstates: "+str(self.joint_obj.q))
 
             #publish joint velocities
             self.target_pose_broadcaster([set_pose_x,set_pose_y,set_pose_z,set_pose_phi])
-            self.test_pub.publish(joint_group_vel)
             self.joint_group_vel_pub.publish(joint_group_vel)
 
             

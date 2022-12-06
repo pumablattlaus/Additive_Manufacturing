@@ -4,7 +4,7 @@ import rospy
 import tf
 from tf import transformations
 from custom_path import MyTrajectory
-from nav_msgs.msg import Path
+from nav_msgs.msg import Path, Odometry
 import math
 from geometry_msgs.msg import Twist, PoseWithCovarianceStamped, Pose
 from cartesian_controller import cartesian_controller
@@ -187,7 +187,7 @@ class execute_trajectories_node():
             param = "~robot" + str(i) + "_pose_topic"
             robotX_pose_topic = rospy.get_param(param)
             self.robot_poses.append(Pose())
-            rospy.Subscriber(robotX_pose_topic, PoseWithCovarianceStamped, self.robot_pose_cb, i)
+            rospy.Subscriber(robotX_pose_topic, Odometry, self.robot_pose_cb, i)
 
             param = "~robot" + str(i) + "_cmd_vel_topic"
             topic = rospy.get_param(param)

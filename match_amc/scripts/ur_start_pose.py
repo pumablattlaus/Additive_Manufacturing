@@ -230,7 +230,7 @@ if __name__ == "__main__":
     rospy.loginfo("Starting node")
     ur = robot(use_moveit=use_moveit)
     switch_to_moveit()
-    print(ur.joint_goal)
+    print("ur goal",ur.joint_goal)
 
     ur.group.go(ur.joint_goal, wait=True)
 
