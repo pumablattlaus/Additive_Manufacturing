@@ -15,6 +15,7 @@
 
         <node name="trajectory_generation" type="trajectory_generation.py" pkg="match_amc" output="screen"/>
 
+        <node name="current_pos_pub" type="current_pos_pub.py" pkg="match_amc" output="screen"/>
 
         <node name="execute_trajectories" type="execute_trajectories_dynamic.py" pkg="match_amc" output="screen">
                 <rosparam command="load" file="$(find match_amc)/config/trajectory_generation_config.yaml"/>

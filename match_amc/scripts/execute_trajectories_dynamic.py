@@ -46,76 +46,26 @@ class execute_trajectories_node():
                 break
             rospy.sleep(0.5)
         rospy.logdebug("MiR at goal")
-
-        # Move to initial pose Via formation controller
-        for i in range(0,1):    # warum?
-            
-            # Turn towards the initial pose
-            rospy.loginfo("turning towards initial pose")
-            correct_orientation = 0
-            while not rospy.is_shutdown() and (correct_orientation < self.number_of_robots):
-                for i in range(0,self.number_of_robots):
-                    act_pose        = self.robot_poses[i]
-                    set_pose_x      = self.target_trajectories[i].x[0]
-                    set_pose_y      = self.target_trajectories[i].y[0]
-                    phi_actual = transformations.euler_from_quaternion([act_pose.orientation.x,act_pose.orientation.y,act_pose.orientation.z,act_pose.orientation.w])
-                    phi_target = math.atan2(set_pose_y-act_pose.position.y,set_pose_x-act_pose.position.x)
-                    e_phi = phi_target - phi_actual[2]
-
-                    self.robot_command.angular.z = self.K_phi * e_phi
-                    if abs(self.robot_command.angular.z) > self.limit_w:
-                        self.robot_command.angular.z = self.robot_command.angular.z / abs(self.robot_command.angular.z) * self.limit_w
-                    if abs(e_phi) < self.target_threshhold_angular:
-                        self.robot_command.angular.z = 0
-                        correct_orientation += 1
-                    self.cmd_vel_publishers[i].publish(self.robot_command)
-
-                    rospy.logdebug(f"{i} phi {e_phi,self.robot_command.angular.z}")
-                rate.sleep()
-
-            # move linear to the initial pose
-            rospy.loginfo("moving to initial pose")
-            correct_distance = 0
-            while not rospy.is_shutdown() and correct_distance < self.number_of_robots:
-                    for i in range(0,self.number_of_robots):
-                        act_pose        = self.robot_poses[i]
-                        set_pose_x      = self.target_trajectories[i].x[0]
-                        set_pose_y      = self.target_trajectories[i].y[0]
-                        e_d = math.sqrt((set_pose_x-act_pose.position.x)**2 + (set_pose_y-act_pose.position.y) **2 )
-
-                        self.robot_command.linear.x = self.K_d * e_d
-                        if abs(self.robot_command.linear.x) > self.limit_x:
-                            self.robot_command.linear.x = self.robot_command.linear.x / abs(self.robot_command.linear.x) * self.limit_x
-                        if abs(e_d) < self.target_threshhold_linear:    # TODO: dangerous if localization is not good
-                            self.robot_command.linear.x = 0
-                            correct_distance += 1
-                        self.cmd_vel_publishers[i].publish(self.robot_command)
-                    
-                        rospy.logdebug(f"l {e_d}")
-                        rate.sleep()
-
-            self.target_threshhold_angular *= 0.5
-            self.target_threshhold_linear *= 0.5
-            
+           
         # set correct orientation
         rospy.loginfo("setting correct orientation")
         correct_orientation = 0
         while not rospy.is_shutdown() and correct_orientation < self.number_of_robots:
-                for i in range(0,self.number_of_robots) :
-                    act_pose        = self.robot_poses[i]
-                    phi_actual = transformations.euler_from_quaternion([act_pose.orientation.x,act_pose.orientation.y,act_pose.orientation.z,act_pose.orientation.w])
-                    phi_target = self.target_trajectories[i].phi[0]
-                    e_phi = phi_target - phi_actual[2]
+            for i in range(0,self.number_of_robots) :
+                act_pose        = self.robot_poses[i]
+                phi_actual = transformations.euler_from_quaternion([act_pose.orientation.x,act_pose.orientation.y,act_pose.orientation.z,act_pose.orientation.w])
+                phi_target = self.target_trajectories[i].phi[0]
+                e_phi = phi_target - phi_actual[2]
 
-                    self.robot_command.angular.z = self.K_phi * e_phi
-                    if abs(self.robot_command.angular.z) > self.limit_w:
-                        self.robot_command.angular.z = self.robot_command.angular.z / abs(self.robot_command.angular.z) * self.limit_w
-                    if abs(e_phi) < self.target_threshhold_angular:
-                        self.robot_command.angular.z = 0
-                        correct_orientation += 1
-                    self.cmd_vel_publishers[i].publish(self.robot_command)
-                
-                    rospy.logdebug(e_phi)
+                self.robot_command.angular.z = self.K_phi * e_phi
+                if abs(self.robot_command.angular.z) > self.limit_w:
+                    self.robot_command.angular.z = self.robot_command.angular.z / abs(self.robot_command.angular.z) * self.limit_w
+                if abs(e_phi) < self.target_threshhold_angular:
+                    self.robot_command.angular.z = 0
+                    correct_orientation += 1
+                self.cmd_vel_publishers[i].publish(self.robot_command)
+            
+                rospy.logdebug(e_phi)
 
         rospy.set_param("/mir_initialized",True)
         rospy.loginfo("MiR initialized")
@@ -162,6 +112,7 @@ class execute_trajectories_node():
 
                 self.target_pose_broadcaster(target_pose,i)
                 # self.actual_pose_broadcaster(actual_pose,i)
+                
 
             idx += 1
             rate.sleep()
@@ -221,7 +172,7 @@ class execute_trajectories_node():
         self.K_d = 0.5
         self.limit_w = 0.3
         self.limit_x = 0.1
-        self.target_threshhold_angular = 0.03
+        self.target_threshhold_angular = 0.05
         self.target_threshhold_linear = 0.15
         self.filter_const = 0.1
         self.filter_const_vel = 1.0

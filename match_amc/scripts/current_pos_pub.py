@@ -3,10 +3,6 @@
 import tf
 import rospy
 from geometry_msgs.msg import Pose
-#import roslib
-#roslib.load_manifest('learning')
-#import math
-#import numpy as np
 
 if __name__ == "__main__":
     rospy.init_node("listener")
@@ -22,7 +18,6 @@ if __name__ == "__main__":
 
     listener.waitForTransform(ns_prefix + 'base_link', ns_prefix + 'UR16/tool0', rospy.Time(), rospy.Duration(4.0))
     rate = rospy.Rate(100.0)
-    #print("Receiving...")
     
     while not rospy.is_shutdown():
         try:
@@ -39,11 +34,6 @@ if __name__ == "__main__":
         cmd.orientation.y = rot[1]
         cmd.orientation.z = rot[2]
         cmd.orientation.w = rot[3]
-        # print(cmd)
         robot_pose.publish(cmd)
         rate.sleep()
         
-    
-    
-    
-    #print("Stopped...")
