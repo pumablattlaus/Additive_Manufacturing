@@ -280,7 +280,7 @@ class trajectory_generation():
 
         rospy.sleep(0.5)
         mir_pub.publish(mir_trajectory)
-        rospy.sleep(3)
+        rospy.sleep(1.0)
         ur_pub.publish(ur_trajectory)
         rospy.sleep(0.5)
 

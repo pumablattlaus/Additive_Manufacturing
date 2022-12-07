@@ -37,9 +37,10 @@ class Compute_trajectory(smach.State):
 class Move_MiR_to_start_pose(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['outcome3'])
-        rospy.set_param("/state_machine/move_mir_to_start_pose",True)
+        
 
     def execute(self, userdata):
+        rospy.set_param("/state_machine/move_mir_to_start_pose",True)
         rospy.loginfo('Executing state Move_MiR_to_start_pose')
         return 'outcome3'
 
@@ -49,6 +50,7 @@ class Move_MiR_to_start_pose(smach.State):
 # main
 def main():
     rospy.init_node('smach_example_state_machine')
+    init_ros_param_server()
 
     # Create a SMACH state machine
     sm = smach.StateMachine(outcomes=['outcome4', 'outcome5'])
@@ -70,7 +72,12 @@ def main():
 
 
 
-
+def init_ros_param_server():
+    rospy.set_param("/state_machine/move_mir_to_start_pose",False)
+    rospy.set_param("/state_machine/paths_received",False)
+    rospy.set_param("/state_machine/trajectories_received",False)
+    rospy.set_param("/state_machine/ur_trajectory_received",False)
+    rospy.set_param("/state_machine/mir_trajectory_received",False)
 
 
 
