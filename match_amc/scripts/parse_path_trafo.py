@@ -82,7 +82,7 @@ class parse_path_trafo():
 
         
         self.mir_pub.publish(self.mir_path)
-        rospy.sleep(0.01)
+        rospy.sleep(1.0)
         self.ur_pub.publish(self.ur_path)
         
         

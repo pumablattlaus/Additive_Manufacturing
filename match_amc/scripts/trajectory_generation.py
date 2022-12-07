@@ -278,11 +278,11 @@ class trajectory_generation():
             ur_trajectory.poses[i].pose.position.y = ur_trajectory_point.pose.position.y
             ur_trajectory.poses[i].pose.position.z = ur_trajectory_point.pose.position.z
 
-        rospy.sleep(1)
+        rospy.sleep(0.5)
         mir_pub.publish(mir_trajectory)
-        rospy.sleep(2)
+        rospy.sleep(3)
         ur_pub.publish(ur_trajectory)
-        rospy.sleep(1)
+        rospy.sleep(0.5)
 
 
 
