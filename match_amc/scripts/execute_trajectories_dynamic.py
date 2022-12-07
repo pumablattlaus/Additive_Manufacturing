@@ -9,10 +9,6 @@ import math
 from geometry_msgs.msg import Twist, PoseWithCovarianceStamped, Pose
 from cartesian_controller import cartesian_controller
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Float64
-
-
-
 
 
 class execute_trajectories_node():
@@ -20,26 +16,18 @@ class execute_trajectories_node():
     def __init__(self):
         rospy.init_node("lyapunov_controller_node")
         rospy.loginfo("lyapunov controller running")
-        rospy.set_param("/mir_initialized",False)
         self.config()
 
     def run(self):
         
         ### wait for UR to continue ###
-        ur_request = False
-        rate = rospy.Rate(1)
-        while not rospy.is_shutdown() and ur_request == False:
-            ur_request = rospy.get_param("/ur_initialized", False)
-            if ur_request == True:
-                rospy.loginfo("UR initialized")
-            else: 
-                #rospy.loginfo("Waiting for UR to be initialized...")
-                pass
-            rate.sleep()
-            
-            
+        while not rospy.is_shutdown() and not rospy.get_param("/state_machine/follow_trajectory", False):
+            rospy.sleep(0.01)
+            pass
+                      
         #### Main loop #####  
         rate = rospy.Rate(self.control_rate)
+        idx = 0
         while not rospy.is_shutdown() and idx < len(self.target_trajectories[0].v):
             for i in range(0,self.number_of_robots):
                 actual_pose     = self.robot_poses[i]
@@ -123,15 +111,7 @@ class execute_trajectories_node():
         self.cmd_vel_publishers = []
         self.robot_command = Twist()
         self.pose_broadcaster = tf.TransformBroadcaster()
-        self.K_phi = 0.3
-        self.K_d = 0.5
-        self.limit_w = 0.3
-        self.limit_x = 0.1
-        self.target_threshhold_angular = 0.05
-        self.target_threshhold_linear = 0.15
         self.filter_const = 0.1
-        self.filter_const_vel = 1.0
-        self.multiplicator = 1.0
 
         for i in range(0,self.number_of_robots):
             param = "~robot" + str(i) + "_trajectory_topic"

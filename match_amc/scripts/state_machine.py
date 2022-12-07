@@ -59,9 +59,19 @@ class Move_UR_to_start_pose(smach.State):
         while not rospy.get_param("/state_machine/ur_initialized") and not rospy.is_shutdown():
             rospy.sleep(0.1)
             pass
-        return
+        return 'ur_initialized'
 
+class Follow_trajectory(smach.State): 
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['done','failed'])
+        
 
+    def execute(self, userdata):
+        rospy.set_param("/state_machine/follow_trajectory",True)
+        while not rospy.get_param("/state_machine/done") and not rospy.is_shutdown():
+            rospy.sleep(0.1)
+        pass
+        return 'done'
 
 
 # main
@@ -83,7 +93,9 @@ def main():
         smach.StateMachine.add('Move_MiR_to_start_pose', Move_MiR_to_start_pose(), 
                                transitions={'mir_initialized':'Move_UR_to_start_pose'})
         smach.StateMachine.add('Move_UR_to_start_pose', Move_UR_to_start_pose(),
-                                 transitions={'ur_initialized':'outcome5'})
+                                 transitions={'ur_initialized':'Follow_trajectory'})
+        smach.StateMachine.add('Follow_trajectory', Follow_trajectory(),
+                                transitions={'done':'outcome5'})
     # Execute SMACH plan
     outcome = sm.execute()
 
@@ -99,7 +111,8 @@ def init_ros_param_server():
     rospy.set_param("/state_machine/mir_trajectory_received",False)
     rospy.set_param("/state_machine/mir_initialized",False)
     rospy.set_param("/state_machine/ur_initialized",False)
-
+    rospy.set_param("/state_machine/follow_trajectory",False)
+    rospy.set_param("/state_machine/done",False)
 
 
 
