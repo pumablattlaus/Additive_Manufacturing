@@ -23,9 +23,9 @@
         </node>
 
 
-        <node name="execute_trajectories" type="execute_trajectories_dynamic.py" pkg="match_amc" output="screen">
+        <!-- <node name="execute_trajectories" type="execute_trajectories_dynamic.py" pkg="match_amc" output="screen">
                 <rosparam command="load" file="$(find match_amc)/config/trajectory_generation_config.yaml"/>
-        </node>
+        </node> -->
 
         
         <node name="move_ur_to_start_pose" type="move_ur_to_start_pose.py" pkg="match_amc" output="screen"/> 

@@ -18,25 +18,6 @@ from controller_manager_msgs.srv import SwitchController
 from inverse_kinematics import Inverse_kinematics
 
 np.set_printoptions(precision=8,suppress=True)
-
-
-def switch_controllers(start=['arm_controller'], stop=['joint_group_vel_controller']):
-    rospy.wait_for_service('controller_manager/switch_controller')
-    try:
-        switch_controller = rospy.ServiceProxy('controller_manager/switch_controller', SwitchController)
-        switch_controller(start_controllers=start, stop_controllers=stop, strictness=2)
-        return True
-    except rospy.ServiceException as e:
-        print("Service call failed: %s"%e)
-        return False
-
-def switch_to_moveit():
-    return switch_controllers(['arm_controller'], ['joint_group_vel_controller'])
-
-def switch_to_velocity():
-    return switch_controllers(['joint_group_vel_controller'], ['arm_controller'])
-
-
         
 class move_ur_to_start_pose():  
     def __init__(self, ns="mur216", group_name="UR_arm", use_moveit=True):
@@ -55,9 +36,20 @@ class move_ur_to_start_pose():
         self.path=Path()
         self.first_pose_rel = [0.0]*6
 
-        self.run()
 
-    def run(self):
+
+    def main(self):
+        self.compute_joint_goal()
+
+        self.switch_to_moveit()
+        self.group.go(self.joint_goal, wait=True)
+
+        self.group.stop() 
+        self.switch_to_velocity()
+        rospy.set_param("/ur_initialized", True)
+        rospy.loginfo("UR initialized")
+
+    def compute_joint_goal(self):
 
 
         #### Wait for Initialization ###
@@ -71,7 +63,7 @@ class move_ur_to_start_pose():
 
         # Goal-transformation from UR-Base to TCP
         t = trans()
-        tcp_t_ur_euler, tcp_t_ur_quat = t.compute_transformation(path, mir_pos)
+        tcp_t_ur_euler, tcp_t_ur_quat = t.compute_transformation(self.path, mir_pos)
 
 
         # for MoveIt: base_footprint is reference link
@@ -96,39 +88,36 @@ class move_ur_to_start_pose():
         rospy.loginfo(f"first_pose_rel: {self.first_pose_rel}")
 
 
-        if not self.use_moveit:
-            ### Calculate IK ###
-            ik = Inverse_kinematics(tcp_t_ur_quat)
-            
-            #Gelenkwinkelkonfigurationen
-            ik.calc_solutions([],0)
-            rospy.loginfo("Moegliche Loesungen wahre Pose")
-            for sol in ik.solutions:
-                #test_solution(sol)
-                rospy.loginfo(sol)
-            rospy.loginfo("")
 
-            # test for switched goal: TODO: check if this is necessary
-            ik.goal_pose = [*self.first_pose_rel.position.__reduce__()[2], *self.first_pose_rel.orientation.__reduce__()[2]]
+        ### Calculate IK ###
+        ik = Inverse_kinematics(tcp_t_ur_quat)
+        
+        #Gelenkwinkelkonfigurationen
+        ik.calc_solutions([],0)
+        rospy.loginfo("Moegliche Loesungen wahre Pose")
+        for sol in ik.solutions:
+            #test_solution(sol)
+            rospy.loginfo(sol)
+        rospy.loginfo("")
 
-            ik.solutions = []
-            ik.calc_solutions([],0)
+        # test for switched goal: TODO: check if this is necessary
+        ik.goal_pose = [*self.first_pose_rel.position.__reduce__()[2], *self.first_pose_rel.orientation.__reduce__()[2]]
 
-            for sol in ik.solutions:
-                #test_solution(sol)
-                rospy.loginfo(sol)
-            rospy.loginfo("")
-            
-            # Select best IK config.
-            ik_solution = ik.select_solution(ik.solutions)
-            
-            #UR control
-            self.joint_togoal_diff = ik.diff_to_goal
-            self.joint_goal = ik_solution
-            self.goal = tcp_t_ur_euler
+        ik.solutions = []
+        ik.calc_solutions([],0)
 
-            self.acceleration = 0.0
-            self.i = 0.0       #TODO: wofuer?
+        for sol in ik.solutions:
+            #test_solution(sol)
+            rospy.loginfo(sol)
+        rospy.loginfo("")
+        
+        # Select best IK config.
+        ik_solution = ik.select_solution(ik.solutions)
+        
+        #UR control
+        self.joint_togoal_diff = ik.diff_to_goal
+        self.joint_goal = ik_solution
+        self.goal = tcp_t_ur_euler
                 
         
     def joint_states_cb(self, data):  
@@ -152,6 +141,22 @@ class move_ur_to_start_pose():
         self.current_ee_pos = (x, y, z, x_roll, y_pitch, z_yaw)
         #rospy.loginfo(self.current_ee_pos)
         
+    def switch_controllers(self,start=['arm_controller'], stop=['joint_group_vel_controller']):
+        rospy.wait_for_service('controller_manager/switch_controller')
+        try:
+            switch_controller = rospy.ServiceProxy('controller_manager/switch_controller', SwitchController)
+            switch_controller(start_controllers=start, stop_controllers=stop, strictness=2)
+            return True
+        except rospy.ServiceException as e:
+            print("Service call failed: %s"%e)
+            return False
+
+    def switch_to_moveit(self):
+        return self.switch_controllers(['arm_controller'], ['joint_group_vel_controller'])
+
+    def switch_to_velocity(self):
+        return self.switch_controllers(['joint_group_vel_controller'], ['arm_controller'])
+
         
 class trans():
     def __init__(self):
@@ -211,15 +216,8 @@ class trans():
 if __name__ == "__main__":
     rospy.loginfo("Starting node")
     ur = move_ur_to_start_pose()
-    switch_to_moveit()
-    print("ur goal",ur.joint_goal)
+    ur.main()
 
-    ur.group.go(ur.joint_goal, wait=True)
-
-    ur.group.stop() 
-    switch_to_velocity()
-    rospy.set_param("/ur_initialized", True)
-    rospy.loginfo("UR initialized")
     
 
         
