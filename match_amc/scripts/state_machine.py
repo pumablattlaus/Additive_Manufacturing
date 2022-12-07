@@ -8,6 +8,7 @@ from nav_msgs.msg import Path
 class Parse_path(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['paths_received','trajectories_received'])
+        rospy.set_param("/state_machine/move_mir_to_start_pose",False)
 
     def execute(self, userdata):
         rospy.loginfo('Executing state Parse_path')
@@ -26,19 +27,20 @@ class Compute_trajectory(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state Compute_trajectory')
-        rospy.wait_for_message('mir_trajectory', Path)
-        rospy.loginfo('mir_trajectory received')
+        # rospy.wait_for_message('mir_trajectory', Path)
+        # rospy.loginfo('mir_trajectory received')
         rospy.wait_for_message('ur_trajectory', Path)
         rospy.loginfo('ur_trajectory received')
         return 'trajectories_received'
         
 
-class State03(smach.State):
+class Move_MiR_to_start_pose(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['outcome3'])
+        rospy.set_param("/state_machine/move_mir_to_start_pose",True)
 
     def execute(self, userdata):
-        rospy.loginfo('Executing state STATE03')
+        rospy.loginfo('Executing state Move_MiR_to_start_pose')
         return 'outcome3'
 
 
@@ -58,8 +60,8 @@ def main():
                                transitions={'paths_received':'Compute_trajectory', 
                                             'trajectories_received':'outcome4'})
         smach.StateMachine.add('Compute_trajectory', Compute_trajectory(), 
-                               transitions={'trajectories_received':'State03'})
-        smach.StateMachine.add('State03', State03(), 
+                               transitions={'trajectories_received':'Move_MiR_to_start_pose'})
+        smach.StateMachine.add('Move_MiR_to_start_pose', Move_MiR_to_start_pose(), 
                                transitions={'outcome3':'Parse_path'})
 
     # Execute SMACH plan

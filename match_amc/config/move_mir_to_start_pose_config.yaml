@@ -1,0 +1,11 @@
+control_rate : 100.0
+target_vel_lin : 0.1
+w_limit : 1.0
+
+
+mir_trajectory_topic : /mir_trajectory
+mir_cmd_vel_topic: mobile_base_controller/cmd_vel
+
+
+mir_pose_topic : ground_truth
+

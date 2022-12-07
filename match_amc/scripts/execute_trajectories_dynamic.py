@@ -11,7 +11,7 @@ from cartesian_controller import cartesian_controller
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
 
-from match_lib.match_robots import MirNav2Goal
+
 
 
 
@@ -24,53 +24,7 @@ class execute_trajectories_node():
         self.config()
 
     def run(self):
-        rospy.loginfo(f"waiting for trajecories{len(self.target_trajectories)}")
-        while len(self.target_trajectories) != self.number_of_robots and not rospy.is_shutdown():
-            rospy.sleep(0.1)
-                
-        rospy.loginfo("all trajecories received")
-        rate = rospy.Rate(self.control_rate)
-        idx = 0
-
-        # Move to initial pose
-        # Because first goal of trajectory is not reached by cartesain formation controller
-        mir=MirNav2Goal("/mur216")
-        first_pose = Pose()
-        first_pose.position.x = self.target_trajectories[0].x[0]
-        first_pose.position.y = self.target_trajectories[0].y[0]
-        first_pose.orientation.w = 1.0
-        mir.sendGoalPos(first_pose)
-        while not rospy.is_shutdown():
-            res = mir.is_ready()
-            if res:
-                break
-            rospy.sleep(0.5)
-        rospy.logdebug("MiR at goal")
-           
-        # set correct orientation
-        rospy.loginfo("setting correct orientation")
-        correct_orientation = 0
-        while not rospy.is_shutdown() and correct_orientation < self.number_of_robots:
-            for i in range(0,self.number_of_robots) :
-                act_pose        = self.robot_poses[i]
-                phi_actual = transformations.euler_from_quaternion([act_pose.orientation.x,act_pose.orientation.y,act_pose.orientation.z,act_pose.orientation.w])
-                phi_target = self.target_trajectories[i].phi[0]
-                e_phi = phi_target - phi_actual[2]
-
-                self.robot_command.angular.z = self.K_phi * e_phi
-                if abs(self.robot_command.angular.z) > self.limit_w:
-                    self.robot_command.angular.z = self.robot_command.angular.z / abs(self.robot_command.angular.z) * self.limit_w
-                if abs(e_phi) < self.target_threshhold_angular:
-                    self.robot_command.angular.z = 0
-                    correct_orientation += 1
-                self.cmd_vel_publishers[i].publish(self.robot_command)
-            
-                rospy.loginfo("turnung",e_phi)
-
-
-        rospy.set_param("/mir_initialized",True)
-        rospy.loginfo("MiR initialized")
-
+        
         ### wait for UR to continue ###
         ur_request = False
         rate = rospy.Rate(1)
@@ -200,4 +154,5 @@ class execute_trajectories_node():
 
 if __name__=="__main__":
     exe = execute_trajectories_node()
+    rospy.sleep(1.0)
     exe.run()

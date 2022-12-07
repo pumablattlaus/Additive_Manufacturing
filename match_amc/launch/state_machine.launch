@@ -16,12 +16,18 @@
         <node name="state_machine" type="state_machine.py" pkg="match_amc" output="screen"/>
         <node name="trajectory_generation" type="trajectory_generation.py" pkg="match_amc" output="screen"/>
 
-        <!--<node name="current_pos_pub" type="current_pos_pub.py" pkg="match_amc" output="screen"/>
+        <node name="current_pos_pub" type="current_pos_pub.py" pkg="match_amc" output="screen"/>
+
+        <node name="move_mir_to_start_pose" type="move_mir_to_start_pose.py" pkg="match_amc" output="screen">
+                <rosparam command="load" file="$(find match_amc)/config/move_mir_to_start_pose_config.yaml"/>
+        </node>
+
 
         <node name="execute_trajectories" type="execute_trajectories_dynamic.py" pkg="match_amc" output="screen">
                 <rosparam command="load" file="$(find match_amc)/config/trajectory_generation_config.yaml"/>
         </node>
 
+        <!--
         <node name="ur_start_pose" type="ur_start_pose.py" pkg="match_amc" output="screen"/> 
 
         <node name="ur_execute_trajectory" type="ur_execute_trajectory.py" pkg="match_amc" output="screen">
