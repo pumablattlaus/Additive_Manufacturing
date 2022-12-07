@@ -5,6 +5,7 @@ import tf
 from tf import transformations
 from path_files.MIR_X import mir_x as mir_x
 from path_files.MIR_Y import mir_y as mir_y
+from path_files.MIR_Z import mir_z as mir_z
 
 from path_files.Wall_X import wall_x as wall_x
 from path_files.Wall_Y import wall_y as wall_y
@@ -17,13 +18,18 @@ class parse_path_trafo():
 
     def __init__(self):
         rospy.init_node("parse_path_trafo_node")
-        self.mir_x= mir_x()
-        self.mir_y= mir_y()
+        # self.mir_x= mir_x()
+        # self.mir_y= mir_y()
 
-        self.wall_x = wall_x()
-        self.wall_y = wall_y()
-        self.wall_z = wall_z()
+        # self.wall_x = wall_x()
+        # self.wall_y = wall_y()
+        # self.wall_z = wall_z()
+        self.mir_x = wall_x()
+        self.mir_y = wall_y()
 
+        self.wall_x = mir_x()
+        self.wall_y = mir_y()
+        self.wall_z = mir_z()
         #print(mir_y)
 
         self.mir_pub = rospy.Publisher("mir_path", Path, queue_size= 1)

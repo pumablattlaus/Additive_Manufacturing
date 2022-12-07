@@ -28,8 +28,6 @@ class move_ur_to_start_pose():
         # self.robot = moveit_commander.RobotCommander(robot_description= ns+"/robot_description") #, ns="ns")
         self.group = moveit_commander.MoveGroupCommander(group_name, robot_description= ns+"/robot_description",wait_for_servers=5.0) #, ns=ns)
         #self.joint_vel_pub = rospy.Publisher("/"+ns+"/joint_group_vel_controller/command", Float64MultiArray, queue_size=1)
-        self.pos_reached = rospy.Publisher('/ur_initialized', Bool, queue_size=1)
-        self.first_call = True
         self.joint_group_vel = Float64MultiArray()
         self.listener=tf.TransformListener()
         self.use_moveit = use_moveit
@@ -46,14 +44,13 @@ class move_ur_to_start_pose():
 
         self.group.stop() 
         self.switch_to_velocity()
-        rospy.set_param("/ur_initialized", True)
+        rospy.set_param("/state_machine/ur_initialized", True)
         rospy.loginfo("UR initialized")
 
     def compute_joint_goal(self):
 
 
         #### Wait for Initialization ###
-        rospy.loginfo("Wait for ur path...")
         self.path = rospy.wait_for_message("ur_path", Path)
 
         while not rospy.get_param('/state_machine/move_ur_to_start_pose', False) and not rospy.is_shutdown():

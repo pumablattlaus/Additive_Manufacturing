@@ -63,7 +63,7 @@ class Move_UR_to_start_pose(smach.State):
 
 class Follow_trajectory(smach.State): 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['done','failed'])
+        smach.State.__init__(self, outcomes=['done'])
         
 
     def execute(self, userdata):

@@ -23,9 +23,7 @@ class ur_velocity_controller():
     def __init__(self):
         self.config()   # load parameters
         rospy.Subscriber('ur_trajectory', Path, self.ur_trajectory_cb)
-        # rospy.Subscriber('/mur_tcp_pose', Pose, self.tcp_pose_cb)   #TODO: identisch mit /tool0_pose?
         rospy.Subscriber('tool0_pose', Pose, self.ur_pose_cb)
-        # rospy.Subscriber('joint_states', JointState, self.joint_states_cb)
         self.joint_obj = Joints()
         
         self.specified_mir_vel = TwistStamped()
@@ -46,34 +44,34 @@ class ur_velocity_controller():
         moveit_commander.roscpp_initialize(sys.argv)
         # self.group = moveit_commander.MoveGroupCommander(group_name, ns=ns, robot_description= ns+"/robot_description",wait_for_servers=5.0)
 
-        self.reset()
+        #self.reset()
 
-    def reset(self):
-        """Resets all variables
-        """
+    # def reset(self):
+    #     """Resets all variables
+    #     """
 
-        # self.pose_n = Pose()
-        # self.pose_n_minus_1 = Pose()
-        self.w_rot = 0.0
+    #     # self.pose_n = Pose()
+    #     # self.pose_n_minus_1 = Pose()
+    #     self.w_rot = 0.0
 
-        rospy.wait_for_message('ground_truth', Odometry)
-        rospy.loginfo("MiR-Pose received ...")
-        # rospy.wait_for_message('/tool0_pose', Pose)
-        # rospy.loginfo("Tool0-Pose received ...")
+    #     rospy.wait_for_message('ground_truth', Odometry)
+    #     rospy.loginfo("MiR-Pose received ...")
+    #     # rospy.wait_for_message('/tool0_pose', Pose)
+    #     # rospy.loginfo("Tool0-Pose received ...")
         
-        rospy.set_param("/ur_initialized", False)   # TODO: was passiert wenn ur_start_pose zu frueh gestartet wurde? (param schon true)
-        ur_request = rospy.get_param("/ur_initialized", False)
+    #     rospy.set_param("/ur_initialized", False)   # TODO: was passiert wenn ur_start_pose zu frueh gestartet wurde? (param schon true)
+    #     ur_request = rospy.get_param("/ur_initialized", False)
         
-        while not rospy.is_shutdown() and ur_request == False:
-            ur_request = rospy.get_param("/ur_initialized", False)
-            if ur_request == True:
-                self.run()
-                print("UR initialized 123")
-                break
-            else: 
-                #print("Waiting for UR to be initialized...")
-                pass
-        rospy.logerr("Running ...")
+    #     while not rospy.is_shutdown() and ur_request == False:
+    #         ur_request = rospy.get_param("/ur_initialized", False)
+    #         if ur_request == True:
+    #             self.run()
+    #             print("UR initialized 123")
+    #             break
+    #         else: 
+    #             #print("Waiting for UR to be initialized...")
+    #             pass
+    #     rospy.logerr("Running ...")
         
         
 
@@ -132,7 +130,6 @@ class ur_velocity_controller():
         angle_vrot_mir = math.atan2(dis_y, dis_x)
         v_y_mir = math.cos(angle_vrot_mir) * v_rot 
         v_x_mir = -math.sin(angle_vrot_mir) * v_rot + v_trans
-        self.test_pub2.publish(self.w_rot)
         
         #velocity vector in the world-frame
         mir_orientation = transformations.quaternion_matrix([self.mir_pose.orientation.x, self.mir_pose.orientation.y, self.mir_pose.orientation.z, self.mir_pose.orientation.w])
@@ -140,25 +137,6 @@ class ur_velocity_controller():
         v_y_world = mir_orientation[1][0] * v_x_mir + mir_orientation[1][1] *  v_y_mir
         return [v_x_world, v_y_world]
     
-    
-    def trajectory_velocity(self, set_pose_phi, v_target):
-        """Calculates v_x, v_y by rotation angle phi
-
-        Args:
-            set_pose_phi (float): orientation of trajectory in radians
-            v_target (float): target velocity of trajectory
-
-        Returns:
-            list[float]: [v_x, v_y]
-        """
-        # x_diff = set_pose_x - act_pose.position.x
-        # y_diff = set_pose_y - act_pose.position.y
-        # alpha = math.atan2(y_diff, x_diff)
-        v_x = math.cos(set_pose_phi) * v_target
-        v_y = math.sin(set_pose_phi) * v_target
-
-        return [v_x, v_y]
-
     
     def transf_velocity_world_to_mirbase(self, final_tcp_vel_world):
         """transform velocity in world coordinates to velocity in mir coordinates. (Approx. the same as in UR coordinates)
@@ -228,6 +206,11 @@ class ur_velocity_controller():
     def run(self):
         """calculates joint velocities by cartesian position error and trajectory velocity. Takes current MiR velocity into account. Trajectory velocity proportional to control rate.
         """
+        ### wait for UR to continue ###
+        while not rospy.is_shutdown() and not rospy.get_param("/state_machine/follow_trajectory", False):
+            rospy.sleep(0.01)
+            pass
+
         rospy.loginfo("Starting position controller")
         rate = rospy.Rate(self.control_rate)
         listener = tf.TransformListener()
@@ -245,17 +228,17 @@ class ur_velocity_controller():
             #position controller
             u_x, u_y, u_z, distance, dis_x, dis_y = self.position_controller(set_pose_x, set_pose_y, set_pose_z, trans[0], trans[1], trans[2])
             #print("distance: ", distance, "dis_x: ", dis_x, "dis_y: ", dis_y)
-            print(set_pose_y,trans[1])
             tcp_initial_vel = self.get_tcp_initial_vel()    # only the part induced by mir to world velocity 
-            target_tcp_vel = self.trajectory_velocity(set_pose_phi, v_target)
+            target_tcp_vel = [math.cos(set_pose_phi) * v_target, math.sin(set_pose_phi) * v_target]
 
             # Goal velocity of ur relative to mir:
             final_tcp_vel_world = [target_tcp_vel[0] - tcp_initial_vel[0] + u_x, target_tcp_vel[1] - tcp_initial_vel[1] + u_y]
+            final_tcp_vel_world = [u_x, u_y]
             final_tcp_vel_mir_base = self.transf_velocity_world_to_mirbase(final_tcp_vel_world)
             
             #TCP velocity in ur_base_link
             tcp_vel_ur = [final_tcp_vel_mir_base[0], final_tcp_vel_mir_base[1], u_z, 0, 0, 0]
-            tcp_vel_ur = [-u_x,-u_y , u_z, 0, 0, 0]
+            #tcp_vel_ur = [-u_x,-u_y , u_z, 0, 0, 0]
             #tcp_vel_ur = [0.0,0.05 , 0, 0, 0, 0]
             #print("tcp_vel_ur: ", tcp_vel_ur)
             #rospy.loginfo("tcp_vel_ur: x,y=" + str(tcp_vel_ur[0]) + "," + str(tcp_vel_ur[1]))
