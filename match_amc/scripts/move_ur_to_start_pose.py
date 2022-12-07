@@ -38,7 +38,7 @@ def switch_to_velocity():
 
 
         
-class robot():  
+class move_ur_to_start_pose():  
     def __init__(self, ns="mur216", group_name="UR_arm", use_moveit=True):
         rospy.init_node("ur_start")
         rospy.Subscriber('/tool0_pose', Pose, self.vel_cb)
@@ -55,38 +55,20 @@ class robot():
         self.path=Path()
         self.first_pose_rel = [0.0]*6
 
-        self.reset()
+        self.run()
 
-    def reset(self):
-        """Resets variables depending on ur_path and mir_pos.
+    def run(self):
 
-        Sets:
-        self.acceleration = 0.0
-        self.i = 0.0
-            self.joint_togoal_diff
-            self.joint_goal
-            self.goal
-        """
-        rospy.set_param("/ur_initialized", False) 
-        first_call = True
-        #### Wait for Initialization ####
+
+        #### Wait for Initialization ###
         rospy.loginfo("Wait for ur path...")
-        path = rospy.wait_for_message("ur_path", Path)
-        # path = rospy.wait_for_message("ur_trajectory", Path)
-        self.path=path
-        request = False
-        rate = rospy.Rate(1)
-        while not request:
-            if rospy.is_shutdown():
-                return  # remaining code of function doesnt need to be called
-            request = rospy.get_param('/mir_initialized', False)
-            rospy.loginfo("Wait for MiR to be initialized...")
-            rate.sleep()
+        self.path = rospy.wait_for_message("ur_path", Path)
+
+        while not rospy.get_param('/state_machine/move_ur_to_start_pose', False) and not rospy.is_shutdown():
+            rospy.sleep(0.1)
         
-        
-        if first_call:  # TODO: first call always true? 
-            mir_pos = rospy.wait_for_message('ground_truth', Odometry).pose.pose
-            first_call = False
+        mir_pos = rospy.wait_for_message('ground_truth', Odometry).pose.pose
+
         # Goal-transformation from UR-Base to TCP
         t = trans()
         tcp_t_ur_euler, tcp_t_ur_quat = t.compute_transformation(path, mir_pos)
@@ -227,9 +209,8 @@ class trans():
         
 
 if __name__ == "__main__":
-    use_moveit = False
     rospy.loginfo("Starting node")
-    ur = robot(use_moveit=use_moveit)
+    ur = move_ur_to_start_pose()
     switch_to_moveit()
     print("ur goal",ur.joint_goal)
 

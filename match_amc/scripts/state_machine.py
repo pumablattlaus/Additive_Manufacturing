@@ -36,13 +36,30 @@ class Compute_trajectory(smach.State):
 
 class Move_MiR_to_start_pose(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['outcome3'])
+        smach.State.__init__(self, outcomes=['mir_initialized'])
         
 
     def execute(self, userdata):
         rospy.set_param("/state_machine/move_mir_to_start_pose",True)
         rospy.loginfo('Executing state Move_MiR_to_start_pose')
-        return 'outcome3'
+        while not rospy.get_param("/state_machine/mir_initialized") and not rospy.is_shutdown():
+            rospy.sleep(0.1)
+            pass
+        return 'mir_initialized'
+
+
+class Move_UR_to_start_pose(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['ur_initialized'])
+        
+
+    def execute(self, userdata):
+        rospy.set_param("/state_machine/move_ur_to_start_pose",True)
+        rospy.loginfo('Executing state Move_UR_to_start_pose')
+        while not rospy.get_param("/state_machine/ur_initialized") and not rospy.is_shutdown():
+            rospy.sleep(0.1)
+            pass
+        return
 
 
 
@@ -64,8 +81,9 @@ def main():
         smach.StateMachine.add('Compute_trajectory', Compute_trajectory(), 
                                transitions={'trajectories_received':'Move_MiR_to_start_pose'})
         smach.StateMachine.add('Move_MiR_to_start_pose', Move_MiR_to_start_pose(), 
-                               transitions={'outcome3':'Parse_path'})
-
+                               transitions={'mir_initialized':'Move_UR_to_start_pose'})
+        smach.StateMachine.add('Move_UR_to_start_pose', Move_UR_to_start_pose(),
+                                 transitions={'ur_initialized':'outcome5'})
     # Execute SMACH plan
     outcome = sm.execute()
 
@@ -74,11 +92,13 @@ def main():
 
 def init_ros_param_server():
     rospy.set_param("/state_machine/move_mir_to_start_pose",False)
+    rospy.set_param("/state_machine/move_ur_to_start_pose",False)
     rospy.set_param("/state_machine/paths_received",False)
     rospy.set_param("/state_machine/trajectories_received",False)
     rospy.set_param("/state_machine/ur_trajectory_received",False)
     rospy.set_param("/state_machine/mir_trajectory_received",False)
-
+    rospy.set_param("/state_machine/mir_initialized",False)
+    rospy.set_param("/state_machine/ur_initialized",False)
 
 
 

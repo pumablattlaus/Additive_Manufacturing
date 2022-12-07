@@ -36,9 +36,9 @@ class move_mir_to_start_pose():
         self.mir_start_pose.pose.orientation.z = q[2]
         self.mir_start_pose.pose.orientation.w = q[3]
         while not rospy.is_shutdown():
-            self.move_to_goal(self.mir_start_pose)
-            rospy.sleep(0.1)
-            if self.reached_goal == True:
+            reached_goal = self.move_to_goal(self.mir_start_pose)
+            rospy.sleep(1.0)
+            if reached_goal == True:
                 break
             else:
                 rospy.logerr("could not reach initial pose. Retrying...")  
@@ -73,7 +73,7 @@ class move_mir_to_start_pose():
             rospy.loginfo("turning")
 
 
-        rospy.set_param("/mir_initialized",True)
+        rospy.set_param("/state_machine/mir_initialized",True)
         rospy.loginfo("MiR initialized")
 
     def target_trajectory_cb(self,Path):
@@ -110,7 +110,9 @@ class move_mir_to_start_pose():
 
         client.send_goal(goal)
         client.wait_for_result()
-        return client.get_result()
+        result = client.get_result()
+        rospy.loginfo("result: " + str(result))
+        return True 
 
 
     def config(self):

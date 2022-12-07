@@ -27,10 +27,10 @@
                 <rosparam command="load" file="$(find match_amc)/config/trajectory_generation_config.yaml"/>
         </node>
 
-        <!--
-        <node name="ur_start_pose" type="ur_start_pose.py" pkg="match_amc" output="screen"/> 
+        
+        <node name="move_ur_to_start_pose" type="move_ur_to_start_pose.py" pkg="match_amc" output="screen"/> 
 
-        <node name="ur_execute_trajectory" type="ur_execute_trajectory.py" pkg="match_amc" output="screen">
+        <!--<node name="ur_execute_trajectory" type="ur_execute_trajectory.py" pkg="match_amc" output="screen">
                 <rosparam command="load" file="$(find bauschaum)/config/trajectory_generation_config.yaml"/>
         </node> -->
     </group>
