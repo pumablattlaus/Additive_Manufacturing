@@ -5,7 +5,7 @@ w_limit : 1.0
 
 mir_target_trajectory_topic : mir_trajectory
 mir_cmd_vel_topic: mobile_base_controller/cmd_vel
-
+move_base_simple_goal_topic: move_base_simple/goal
 
 mir_pose_topic : ground_truth
 
