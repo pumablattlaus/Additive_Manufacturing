@@ -47,8 +47,6 @@ class execute_trajectories_node():
                 target_velocity.angular.z = self.target_trajectories[i].w[idx] * self.control_rate
 
                 u_v, u_w = cartesian_controller(actual_pose,target_pose,target_velocity)
-                rospy.loginfo_throttle(1, "u_v: %f, u_w: %f", u_v, u_w)
-                rospy.loginfo_throttle(1, "target velocity= " + str(target_velocity.linear.x))
 
                 self.robot_command.linear.x = u_v
                 self.robot_command.angular.z = u_w
