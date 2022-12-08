@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-from math import atan2, sqrt, cos, sin
+from math import atan2, sqrt, cos, sin, pi
 from custom_path import Mypath
 import rospy
 from nav_msgs.msg import Path
@@ -20,7 +20,7 @@ class trajectory_generation():
         self.control_rate = 100
         self.ur_acc_limit_lin = 0.3
         self.mir_acc_limit_lin = 0.3
-        self.w_limit = 1.0  # does nothing
+        self.w_limit = 0.05  # does nothing
 
 
     def __init__(self):
@@ -171,14 +171,18 @@ class trajectory_generation():
             #print(ur_target_angle_vertical,ur_target_angle_horizontal)
 
             mir_w_target=mir_target_angle-mir_current_angle
+            if abs(mir_w_target) > pi:
+                mir_w_target = (abs(mir_w_target) / mir_w_target) * (2*pi - abs(mir_w_target))
 
             if abs(mir_w_target) > self.w_limit:
-                mir_w_target *= (abs(mir_w_target) / mir_w_target) * abs(self.w_limit)
+                mir_w_target = (abs(mir_w_target) / mir_w_target) * self.w_limit
             
             mir_current_angle += mir_w_target
+            if abs(mir_current_angle) > pi:
+                mir_current_angle = (abs(mir_current_angle) / mir_current_angle) * (2*pi - abs(mir_current_angle))
 
-            mir_target_pose.x = mir_target_pose.x + cos(mir_target_angle) * mir_current_velocity_lin
-            mir_target_pose.y = mir_target_pose.y + sin(mir_target_angle) * mir_current_velocity_lin
+            mir_target_pose.x = mir_target_pose.x + cos(mir_current_angle) * mir_current_velocity_lin
+            mir_target_pose.y = mir_target_pose.y + sin(mir_current_angle) * mir_current_velocity_lin
 
             ur_target_pose.x = ur_target_pose.x + cos(ur_target_angle_horizontal) * ur_current_velocity_lin * cos(ur_target_angle_vertical)
             ur_target_pose.y = ur_target_pose.y + sin(ur_target_angle_horizontal) * ur_current_velocity_lin * cos(ur_target_angle_vertical)

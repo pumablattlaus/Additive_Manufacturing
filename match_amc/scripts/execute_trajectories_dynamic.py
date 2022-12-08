@@ -27,6 +27,7 @@ class execute_trajectories_node():
                       
         #### Main loop #####  
         rate = rospy.Rate(self.control_rate)
+        rospy.logerr("control rate: " + str(self.control_rate))
         idx = 0
         while not rospy.is_shutdown() and idx < len(self.target_trajectories[0].v):
             for i in range(0,self.number_of_robots):
@@ -52,6 +53,15 @@ class execute_trajectories_node():
                 self.robot_command.linear.x = u_v
                 self.robot_command.angular.z = u_w
                 self.cmd_vel_publishers[i].publish(self.robot_command)
+
+                if abs(u_w) > 0.1:
+                    rospy.logerr("u_w too high: " + str(u_w))
+                    print(target_velocity.angular.z)
+                    actual_angle = transformations.euler_from_quaternion([actual_pose.orientation.x,actual_pose.orientation.y,actual_pose.orientation.z,actual_pose.orientation.w])[2]
+                    target_angle = transformations.euler_from_quaternion([target_pose.orientation.x,target_pose.orientation.y,target_pose.orientation.z,target_pose.orientation.w])[2]
+                    print(actual_angle)
+                    print(target_angle)
+
 
                 self.target_pose_broadcaster(target_pose,i)
                 # self.actual_pose_broadcaster(actual_pose,i)
