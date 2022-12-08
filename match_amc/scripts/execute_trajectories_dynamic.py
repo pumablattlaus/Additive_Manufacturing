@@ -54,13 +54,13 @@ class execute_trajectories_node():
                 self.robot_command.angular.z = u_w
                 self.cmd_vel_publishers[i].publish(self.robot_command)
 
-                if abs(u_w) > 0.1:
-                    rospy.logerr("u_w too high: " + str(u_w))
-                    print(target_velocity.angular.z)
-                    actual_angle = transformations.euler_from_quaternion([actual_pose.orientation.x,actual_pose.orientation.y,actual_pose.orientation.z,actual_pose.orientation.w])[2]
-                    target_angle = transformations.euler_from_quaternion([target_pose.orientation.x,target_pose.orientation.y,target_pose.orientation.z,target_pose.orientation.w])[2]
-                    print(actual_angle)
-                    print(target_angle)
+                # if abs(u_w) > 0.1:
+                #     rospy.logerr("u_w too high: " + str(u_w))
+                #     print(target_velocity.angular.z)
+                #     actual_angle = transformations.euler_from_quaternion([actual_pose.orientation.x,actual_pose.orientation.y,actual_pose.orientation.z,actual_pose.orientation.w])[2]
+                #     target_angle = transformations.euler_from_quaternion([target_pose.orientation.x,target_pose.orientation.y,target_pose.orientation.z,target_pose.orientation.w])[2]
+                #     print(actual_angle)
+                #     print(target_angle)
 
 
                 self.target_pose_broadcaster(target_pose,i)

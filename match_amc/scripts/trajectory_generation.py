@@ -20,7 +20,8 @@ class trajectory_generation():
         self.control_rate = 100
         self.ur_acc_limit_lin = 0.3
         self.mir_acc_limit_lin = 0.3
-        self.w_limit = 0.05  # does nothing
+        self.w_limit = 0.5  # limits angular velocity
+        self.dw_limit = 0.1  # limits angular acceleration
 
 
     def __init__(self):
@@ -96,6 +97,7 @@ class trajectory_generation():
         mir_index = 1
         ur_index = 1
         current_velocity_lin = 0.0
+        mir_current_angular_velocity = 0.0
         mir_current_velocity_lin = 0.0
         ur_current_velocity_lin = 0.0
         mir_dist = 0.0
@@ -176,10 +178,15 @@ class trajectory_generation():
 
             if abs(mir_w_target) > self.w_limit:
                 mir_w_target = (abs(mir_w_target) / mir_w_target) * self.w_limit
+
+            dw = mir_w_target - mir_current_angular_velocity
+            if abs(dw) > self.dw_limit:
+                dw = (abs(dw) / dw) * self.dw_limit
             
-            mir_current_angle += mir_w_target
-            if abs(mir_current_angle) > pi:
-                mir_current_angle = (abs(mir_current_angle) / mir_current_angle) * (2*pi - abs(mir_current_angle))
+            mir_current_angular_velocity += dw
+            mir_current_angle += mir_current_angular_velocity
+            # if abs(mir_current_angle) > pi:
+            #     mir_current_angle = (abs(mir_current_angle) / mir_current_angle) * (2*pi - abs(mir_current_angle))
 
             mir_target_pose.x = mir_target_pose.x + cos(mir_current_angle) * mir_current_velocity_lin
             mir_target_pose.y = mir_target_pose.y + sin(mir_current_angle) * mir_current_velocity_lin
