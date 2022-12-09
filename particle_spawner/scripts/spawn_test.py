@@ -6,7 +6,7 @@ from nav_msgs.msg import Odometry
 from tf import transformations
 from gazebo_msgs.srv import SpawnModel, DeleteModel
 from gazebo_msgs.msg import ModelStates
-
+import rospkg
 
 
 class SpawnModel_test():
@@ -22,6 +22,8 @@ class SpawnModel_test():
         self.i = 0
         self.to_be_deleted = []
         self.listener = tf.TransformListener()
+        rospack = rospkg.RosPack()
+        self.model_path = rospack.get_path('particle_spawner') + '/models/particle_sphere_fluid/model.sdf'
         rospy.Subscriber("/mur216/ground_truth",Odometry,self.ground_truth_callback)
         rospy.Subscriber("/gazebo/model_states",ModelStates,self.model_states_callback)
         rospy.sleep(1)
@@ -48,7 +50,7 @@ class SpawnModel_test():
 
             self.spawn_model_client(
             model_name=model_name,
-                model_xml=open('/usr/share/gazebo-11/models/particle_sphere_fluid/model.sdf', 'r').read(),
+                model_xml=open(self.model_path, 'r').read(),
                 robot_namespace='/foo',
                 initial_pose=self.tcp_pose,
                 reference_frame='world'
