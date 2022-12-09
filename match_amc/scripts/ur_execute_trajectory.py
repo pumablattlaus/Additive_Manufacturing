@@ -46,74 +46,7 @@ class ur_velocity_controller():
         # self.group = moveit_commander.MoveGroupCommander(group_name, ns=ns, robot_description= ns+"/robot_description",wait_for_servers=5.0)
 
         #self.reset()
-
-
-        
-        
-
-    
-    def get_distance_mir_ur(self):
-        """Calculates distance from base of Mir to TCP of UR in MiR-coordinates.
-
-        Returns:
-            float: total distance
-            float: distance in x
-            float: distance in y
-        """
-        #Transformation ur_base to tcp
-        trans_ur = [self.ur_pose.position.x, self.ur_pose.position.y, self.ur_pose.position.z]
-        rot_ur = [self.ur_pose.orientation.x, self.ur_pose.orientation.y, self.ur_pose.orientation.z, self.ur_pose.orientation.w]
-        urbase_T_urtcp = transformations.quaternion_matrix(rot_ur)
-        urbase_T_urtcp[0][3] = trans_ur[0]
-        urbase_T_urtcp[1][3] = trans_ur[1]
-        urbase_T_urtcp[2][3] = trans_ur[2]
-        
-        #Transformation MiR-Base to UR-Base
-        R_z_180 = [[-0.999999, -0.004538, 0], 
-                    [0.004538, -0.999999, 0],
-                    [0, 0, 1]] 
-        t_mir_ur = [0.173364, -0.102631, 0.45]
-        mirbase_T_urbase = np.array([[R_z_180[0][0],R_z_180[0][1],R_z_180[0][2],t_mir_ur[0]],
-                                [R_z_180[1][0],R_z_180[1][1],R_z_180[1][2],t_mir_ur[1]],
-                                [R_z_180[2][0],R_z_180[2][1],R_z_180[2][2],t_mir_ur[2]],
-                                [0,0,0,1]])
-        
-        #Tranformation MiR-Base zu UR-TCP
-        mirbase_T_urtcp = np.dot(mirbase_T_urbase,urbase_T_urtcp)
-        distance = pow(pow(mirbase_T_urtcp[0][3],2) + pow(mirbase_T_urtcp[1][3],2),0.5)
-        distance_x = mirbase_T_urtcp[0][3]
-        distance_y = mirbase_T_urtcp[1][3]
-                
-        return distance, distance_x, distance_y
-    
-    
-    
-    def get_tcp_initial_vel(self):
-        """Get velocity of TCP (mir+ur) induced by velocity of mir in world coordinates (no velocity of ur relative to mir)
-
-        Returns:
-            (float): (v_x, v_y)
-        """
-        v_trans = math.sqrt(pow(self.target_vel_mir.twist.linear.x,2) + pow(self.target_vel_mir.twist.linear.y,2))
-        radius, dis_x, dis_y = self.get_distance_mir_ur()
-        # filter = 1.0
-        #self.w_rot = self.w_rot * (1-filter) + self.mir_trajectorie[1][i] * filter #self.target_vel_mir.twist.angular.z * filter
-        #v_rot = self.w_rot * radius
-        v_rot = self.target_vel_mir.twist.angular.z * radius
-        #v_rot = self.target_vel_mir.twist.twist.angular.z * radius
-        
-        #velocity vector in the mir-frame
-        angle_vrot_mir = math.atan2(dis_y, dis_x)
-        v_y_mir = math.cos(angle_vrot_mir) * v_rot 
-        v_x_mir = -math.sin(angle_vrot_mir) * v_rot + v_trans
-        
-        #velocity vector in the world-frame
-        mir_orientation = transformations.quaternion_matrix([self.mir_pose.orientation.x, self.mir_pose.orientation.y, self.mir_pose.orientation.z, self.mir_pose.orientation.w])
-        v_x_world = mir_orientation[0][0] * v_x_mir + mir_orientation[0][1] *  v_y_mir
-        v_y_world = mir_orientation[1][0] * v_x_mir + mir_orientation[1][1] *  v_y_mir
-        return [v_x_world, v_y_world]
-    
-    
+   
     def transf_velocity_world_to_mirbase(self, final_tcp_vel_world):
         """transform velocity in world coordinates to velocity in mir coordinates. (Approx. the same as in UR coordinates)
 
@@ -213,12 +146,11 @@ class ur_velocity_controller():
             vel_tcp_y = vel_tcp * math.sin(angle_mir_ur)
             
             angle_mir_world = tf.transformations.euler_from_quaternion(rot)
-            vel_tcp_feed_forward_x = v_target * math.cos(angle_mir_world[2]) - vel_tcp_y * math.sin(angle_mir_world[2])
-            vel_tcp_feed_forward_y = v_target * math.sin(angle_mir_world[2]) + vel_tcp_y * math.cos(angle_mir_world[2])
-            vel_tcp_feed_forward_x = 0.0
-            vel_tcp_feed_forward_y = 0.0
-            
-            
+            ur_vel_x = (self.trajectorie[0][index+1] - self.trajectorie[0][index]) * self.control_rate
+            ur_vel_y = (self.trajectorie[1][index+1] - self.trajectorie[1][index]) * self.control_rate
+            vel_tcp_feed_forward_x = ur_vel_x * math.cos(angle_mir_world[2]) - ur_vel_y * math.sin(angle_mir_world[2])
+            vel_tcp_feed_forward_y = ur_vel_x * math.sin(angle_mir_world[2]) + ur_vel_y * math.cos(angle_mir_world[2])
+          
             final_tcp_vel_world = [u_x-vel_tcp_x+vel_tcp_feed_forward_x, u_y-vel_tcp_y+vel_tcp_feed_forward_y, u_z]
             final_tcp_vel_mir_base = self.transf_velocity_world_to_mirbase(final_tcp_vel_world)
             
@@ -323,11 +255,6 @@ class ur_velocity_controller():
 
         self.mir_trajectorie = [trajectory_v, trajectory_w]
         rospy.loginfo("mir trajectory received")
-        
-    def mir_vel_odom_cb(self, data):
-        """Wird nicht verwendet. Stattdessen mir_vel_cb
-        """
-        self.target_vel_mir = data   
 
     def config(self):
         self.control_rate = rospy.get_param('~control_rate', 100)
