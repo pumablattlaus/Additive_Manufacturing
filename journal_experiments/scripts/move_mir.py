@@ -11,12 +11,12 @@ class Move_mir():
         self.target_pose.pose.orientation.w = 1.0
         self.start_pose.pose.orientation.w = 1.0
         self.Kp = -0.2
-        self.Ktheta = 0.05
+        self.Ktheta = 0.02
         self.angular_vel_limit = 0.1
-        self.linear_vel_limit = 0.1
+        self.linear_vel_limit = 0.08
         self.control_rate = 100
-        self.ur_vel_limit = 0.1
-        self.ur_acc_limit = 0.5
+        self.ur_vel_limit = 0.11
+        self.ur_acc_limit = 0.7
     
     
     def __init__(self):
@@ -30,7 +30,7 @@ class Move_mir():
         self.ur_command_old = Twist()
         self.cmd_vel_pub = rospy.Publisher("/mur620b/mir/cmd_vel", Twist, queue_size=1)
         self.ur_twist_pub = rospy.Publisher("/UR10_r/twist_controller/command", Twist, queue_size=1)
-        rospy.Subscriber("/qualisys/MuR620b/pose", PoseStamped, self.pose_callback)
+        rospy.Subscriber("/qualisys/mur620b/pose", PoseStamped, self.pose_callback)
         
         rospy.sleep(1)
         
@@ -74,7 +74,7 @@ class Move_mir():
                     
                 self.cmd_vel_pub.publish(self.cmd_vel)
                 
-                if abs(angle_error) < 0.003:
+                if abs(angle_error) < 0.002:
                     break   
                 
                 rate.sleep()    
@@ -116,23 +116,23 @@ class Move_mir():
                 elif angle_error < -math.pi:
                     angle_error = angle_error + 2*math.pi
                 
-                # compute angular velocity
-                vel_ang = self.Ktheta * angle_error * 0.0
+                print("angle error: ", angle_error)
                 
-                if vel_lin > 0:
-                    vel_ang = 0.0
+                # compute angular velocity
+                vel_ang = self.Ktheta * angle_error * 0.2
+                
+                # if vel_lin > 0:
+                #     vel_ang = 0.0
                 
                 # limit angular velocity
                 if abs(vel_ang) > self.angular_vel_limit:
                     vel_ang = self.angular_vel_limit * vel_ang / abs(vel_ang)
                 
-                print("angular velocity: ", vel_ang)
                 
                 # limit linear velocity
                 if abs(vel_lin) > self.linear_vel_limit:
                     vel_lin = self.linear_vel_limit * vel_lin / abs(vel_lin)
                 
-                print("linear velocity: ", vel_lin)
                 
                 # set cmd_vel
                 self.cmd_vel.linear.x = vel_lin
@@ -143,7 +143,7 @@ class Move_mir():
                 # publish cmd_vel
                 self.cmd_vel_pub.publish(self.cmd_vel)
                 
-                if abs(linear_error) < 0.1:
+                if abs(linear_error) < 0.12:
                     break
                 
                 
@@ -156,14 +156,11 @@ class Move_mir():
                 # get UR pose
                 lin_world, ang_world = self.listener.lookupTransform("mocap", "mur620b/UR10_r/tool0", rospy.Time(0))
                 lin_local, ang_local = self.listener.lookupTransform("mur620b/UR10_r/base_link", "mur620b/UR10_r/tool0", rospy.Time(0))
-                
-                print("lin_world: ", lin_world)
-                print("lin_local: ", lin_local)
-                
+                                
                 # compute target pose
                 target_pose_ur = Pose()
                 target_pose_ur.position.x = self.actual_pose.position.x + 0.5
-                target_pose_ur.position.y = -1.2 + 0.35 * math.sin(1.5 * self.actual_pose.position.x)
+                target_pose_ur.position.y = -1.2 + 0.3 * math.sin(1.5 * self.actual_pose.position.x)
                 
                 self.br.sendTransform((target_pose_ur.position.x, target_pose_ur.position.y, 0.0), (0.0, 0.0, 0.0, 1.0), rospy.Time.now(), "target_pose_ur", "mocap")
                 
@@ -171,12 +168,10 @@ class Move_mir():
                 e_x = target_pose_ur.position.x - lin_world[0]
                 e_y = target_pose_ur.position.y - lin_world[1]
                 
-                print("e_x: ", e_x)
-                print("e_y: ", e_y)
-                
+                # compute command
                 ur_command = Twist()
-                ur_command.linear.x = 0.2 * e_x
-                ur_command.linear.y = 0.3 * e_y
+                ur_command.linear.x = 0.2 * e_x 
+                ur_command.linear.y = 0.5 * e_y #+ 0.1 * math.cos(1.5 * self.actual_pose.position.x)
                 
                 # limit linear velocity
                 if abs(ur_command.linear.x) > self.ur_vel_limit:
