@@ -10,8 +10,8 @@ class Create_path():
     def config(self):
         self.start_pose.position.x = -2.5
         self.target_pose.position.x = 2.5
-        self.point_per_meter = 30
-        self.dist = 50
+        self.point_per_meter = 100
+        self.dist = 100
         pass
     
     def main(self):
@@ -20,8 +20,8 @@ class Create_path():
         self.start_pose = Pose()
         self.target_pose = Pose()
         self.config()
-        self.path_pub = rospy.Publisher("/mir_path", Path, queue_size=1)
-        self.path_pub_ur = rospy.Publisher("/ur_path", Path, queue_size=1)
+        self.path_pub = rospy.Publisher("/mir_path", Path, queue_size=2)
+        self.path_pub_ur = rospy.Publisher("/ur_path", Path, queue_size=2)
         
         rospy.sleep(1)
         
@@ -39,11 +39,11 @@ class Create_path():
             pose.header.stamp = rospy.Time.now()
             pose.header.seq = i
             # plan circle
-            pose.pose.position.x = 1.7*math.cos(i/self.point_per_meter)
-            pose.pose.position.y = 1.7*math.sin(i/self.point_per_meter)
+            pose.pose.position.x = 2.0*math.cos(i/self.point_per_meter)
+            pose.pose.position.y = 2.0*math.sin(i/self.point_per_meter)
             next_pose = Pose()
-            next_pose.position.x = 1.7*math.cos((i+1)/self.point_per_meter)
-            next_pose.position.y = 1.7*math.sin((i+1)/self.point_per_meter)
+            next_pose.position.x = 2.0*math.cos((i+1)/self.point_per_meter)
+            next_pose.position.y = 2.0*math.sin((i+1)/self.point_per_meter)
             orientation = math.atan2(next_pose.position.y - pose.pose.position.y, next_pose.position.x - pose.pose.position.x)
             q = tf.transformations.quaternion_from_euler(0, 0, orientation)
             pose.pose.orientation.x = q[0]
@@ -59,13 +59,13 @@ class Create_path():
             ur_pose.header.frame_id = "mocap"
             ur_pose.header.stamp = rospy.Time.now()
             ur_pose.header.seq = i
-            ur_pose.pose.position.x = 1.0*math.cos(i/self.point_per_meter)
-            ur_pose.pose.position.y = 1.0*math.sin(i/self.point_per_meter)
+            ur_pose.pose.position.x = 1.0*math.cos(i/self.point_per_meter) #+ 0.1 * math.sin(6*i/self.point_per_meter)
+            ur_pose.pose.position.y = 1.0*math.sin(i/self.point_per_meter)  #+ 0.1 * math.cos(6*i/self.point_per_meter)
             
             ur_path.poses.append(ur_pose)
         
         self.path_pub.publish(path)
-        rospy.sleep(1)
+        rospy.sleep(1.5)
         self.path_pub_ur.publish(ur_path)
         
         
