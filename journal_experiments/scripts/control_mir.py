@@ -28,7 +28,7 @@ class Control_mir_node():
         self.KP_vel = 1.0
         self.KP_omega = 1.0
         self.control_rate = rospy.get_param("~control_rate", 100.0)
-        self.velocity_limit_lin = rospy.get_param("~velocity_limit_lin", 0.05)
+        self.velocity_limit_lin = rospy.get_param("~velocity_limit_lin", 0.06)
         self.velocity_limit_ang = rospy.get_param("~velocity_limit_ang", 0.5)
         self.acceleration_limit_lin = rospy.get_param("~acceleration_limit_lin", 1.0)
         self.acceleration_limit_ang = rospy.get_param("~acceleration_limit_ang", 1.0)
@@ -155,7 +155,7 @@ class Control_mir_node():
 
             # broadcast target point
             for i in range(len(self.robot_names)):
-                self.target_pose_broadcaster.sendTransform((target_points[i][0], target_points[i][1], 0.0), (0.0, 0.0, 0.0, 1.0), rospy.Time.now(), self.robot_names[i] + '/target_point', 'map')
+                self.target_pose_broadcaster.sendTransform((target_points[i][0], target_points[i][1], 0.0), (0.0, 0.0, 0.0, 1.0), rospy.Time.now(), self.robot_names[i] + '/target_point', 'mocap')
 
             # compute angle to target point
             for i in range(len(self.robot_names)):

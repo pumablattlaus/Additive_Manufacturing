@@ -13,12 +13,12 @@ class Move_to_start_pose():
     def __init__(self):
         self.target_vel = Twist()
         self.KP = rospy.get_param("~KP", 0.5)
-        self.angle_tolerance = rospy.get_param("~angle_tolerance", 0.01)
+        self.angle_tolerance = rospy.get_param("~angle_tolerance", 0.02)
         self.control_rate = rospy.get_param("~control_rate", 50)
         self.target_pose = rospy.get_param("~target_pose", [2,0,0])
         self.linear_vel_limit = 0.08
         self.angular_vel_limit = 0.2
-        self.linear_tolerance = 0.2
+        self.linear_tolerance = 0.1
         
         
         self.move_base_simple_goal_pub = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=1)
@@ -70,7 +70,7 @@ class Move_to_start_pose():
                 theta_diff += 2 * math.pi
 
             # compute the target velocity
-            self.target_vel.angular.z = 0.2 * theta_diff
+            self.target_vel.angular.z = 0.3 * theta_diff
             
             # limit angular velocity
             if abs(self.target_vel.angular.z) > self.angular_vel_limit:
