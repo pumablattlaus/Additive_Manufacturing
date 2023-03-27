@@ -1,0 +1,5 @@
+Speed:100 mm/s
+Layer height: 38mm
+Layer width: 70mm
+Spiral: true
+Dimension: 2.5D
