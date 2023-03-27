@@ -55,7 +55,7 @@ class Control_mir_node():
         self.derive_robot_paths()
         self.compute_path_lengths()
         # init variables
-        self.path_index = 5
+        self.path_index = 1
         path_index_old = 0
         uv_old = 0.0
         uw_old = 0.0

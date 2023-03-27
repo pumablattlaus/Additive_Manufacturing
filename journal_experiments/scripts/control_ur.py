@@ -13,9 +13,11 @@ class Control_ur():
         self.Kpx = -0.2
         self.Kpy = 0.2
         self.Kpz = 0.0
-        self.ur_target_tolerance = 0.01
-        self.ur_acceleration_limit = 0.01
-        self.ur_velocity_limit = 0.15
+        self.ur_target_tolerance = 0.015
+        self.ur_acceleration_limit = 0.005
+        self.ur_jerk_limit = 0.1 
+        self.ur_velocity_limit = 0.1
+        self.ur_target_velocity = 0.05
         pass
     
     
@@ -23,15 +25,15 @@ class Control_ur():
         rospy.init_node("control_ur_node")
         self.ur_pose_listener = tf.TransformListener()
         self.ur_target_pose_broadcaster = tf.TransformBroadcaster()
-        rospy.Subscriber("/path_index", Int32, self.path_index_callback)
+        #rospy.Subscriber("/path_index", Int32, self.path_index_callback)
         self.ur_command_publisher = rospy.Publisher("/UR10_r/twist_controller/command", Twist, queue_size=2)
         self.path_index_publisher = rospy.Publisher('/path_index', Int32, queue_size=1)
         self.ur_command = Twist()
         self.ur_command_old = Twist()
-        self.path_index = 0
+        self.path_index = 1
         self.path_speed = 0.0
         self.path_distance = 0.0
-        self.time_old = rospy.Time.now()
+        self.initial_run = True
         
         
         self.config()
@@ -43,9 +45,12 @@ class Control_ur():
         print("waiting for path")
         self.ur_path = rospy.wait_for_message("/ur_path", Path)
         print("got path")
+        # compute distance between points
+        self.compute_path_lengths()
         
         # move ur to start pose
         self.move_ur_to_start_pose(self.ur_path.poses[0].pose)
+        print("UR in start pose")
         
         # start control loop
         self.update()
@@ -83,26 +88,53 @@ class Control_ur():
             e_y_base = R[1,0] * e_x + R[1,1] * e_y + R[1,2] * e_z
             e_z_base = R[2,0] * e_x + R[2,1] * e_y + R[2,2] * e_z
             
+            # compute direction of target pose
+            target_pose_direction = math.atan2(target_pose.position.y - self.ur_path.poses[self.path_index-1].pose.position.y, target_pose.position.x - self.ur_path.poses[self.path_index-1].pose.position.x)
+                        
             # calculate command
-            self.ur_command.linear.x = e_x_base * self.Kpx
-            self.ur_command.linear.y = e_y_base * self.Kpy
+            self.ur_command.linear.x = e_x_base * self.Kpx + self.ur_target_velocity * math.cos(target_pose_direction)
+            self.ur_command.linear.y = e_y_base * self.Kpy + self.ur_target_velocity * math.sin(target_pose_direction)
             self.ur_command.linear.z = e_z_base * self.Kpz
             
             # limit velocity
             ur_command = self.limit_velocity(self.ur_command, self.ur_command_old)
+            
+            # set timestamp on initial run
+            if self.initial_run:
+                self.time_old = rospy.Time.now()
+                self.initial_run = False
+            
+            # compute path speed
+            path_speed = self.compute_path_speed_and_distance(ur_command)
+            
+            self.broadcast_target_pose(target_pose)
+            # check if next path point is reached
+            print("path index: ", self.path_index)
+            print("path distance: ", self.path_distance)
+            print("path speed: ", path_speed)
+            print("path length: ", self.path_lengths[self.path_index])
+            if self.path_distance + path_speed > self.path_lengths[self.path_index]:
+                self.path_index += 1
+                path_index_msg = Int32()
+                path_index_msg.data = self.path_index
+                self.path_index_publisher.publish(path_index_msg)
+                continue
+            
+            
+
             self.ur_command_old = ur_command
-            self.ur_command_publisher.publish(ur_command)
+            #self.ur_command_publisher.publish(ur_command)
             
             rate.sleep()
     
     def move_ur_to_start_pose(self, pose):
-        
-        # broadcast start pose
-        self.ur_target_pose_broadcaster.sendTransform((pose.position.x, pose.position.y, pose.position.z), (pose.orientation.x, pose.orientation.y, pose.orientation.z, 1), rospy.Time.now(), "/ur_target_pose", "/mocap")
-        
+                
         rate = rospy.Rate(100)
         
         while not rospy.is_shutdown():
+             # broadcast start pose
+            self.broadcast_target_pose(pose)
+            
             # get ur pose from listener
             lin, ang = self.ur_pose_listener.lookupTransform("/mocap", "/mur620b/UR10_r/tool0", rospy.Time(0))
         
@@ -126,18 +158,7 @@ class Control_ur():
             self.ur_command.linear.x = e_x_base * self.Kpx
             self.ur_command.linear.y = e_y_base * self.Kpy
             self.ur_command.linear.z = e_z_base * self.Kpz
-            
-            # compute path speed
-            path_speed = self.compute_path_speed_and_distance(self.ur_command)
-            
-            # check if next path point is reached
-            if self.path_distance + path_speed > self.path_lengths[self.path_index]:
-                self.path_index += 1
-                path_index_msg = Int32()
-                path_index_msg.data = self.path_index
-                self.path_index_publisher.publish(path_index_msg)
-                break
-            
+                       
             # limit velocity
             ur_command = self.limit_velocity(self.ur_command, self.ur_command_old)
             self.ur_command_old = ur_command
@@ -161,7 +182,7 @@ class Control_ur():
         path_speed = math.sqrt(ur_command.linear.x**2 + ur_command.linear.y**2 + ur_command.linear.z**2) 
         self.path_distance = self.path_distance + path_speed * dt
         self.time_old = now
-        return path_speed
+        return path_speed * dt
        
     
     def path_index_callback(self, msg):
@@ -173,10 +194,11 @@ class Control_ur():
         # compute path lengths
         self.path_lengths = [0.0]
         
-        for i in range(len(self.path.poses)-1):
-            self.path_lengths.append(self.path_lengths[i] + math.sqrt((self.path.poses[i+1].pose.position.x - self.path.poses[i].pose.position.x)**2 + (self.path.poses[i+1].pose.position.y - self.path.poses[i].pose.position.y)**2 + (self.path.poses[i+1].pose.position.z - self.path.poses[i].pose.position.z)**2))
+        for i in range(len(self.ur_path.poses)-1):
+            self.path_lengths.append(self.path_lengths[i] + math.sqrt((self.ur_path.poses[i+1].pose.position.x - self.ur_path.poses[i].pose.position.x)**2 + (self.ur_path.poses[i+1].pose.position.y - self.ur_path.poses[i].pose.position.y)**2 + (self.ur_path.poses[i+1].pose.position.z - self.ur_path.poses[i].pose.position.z)**2))
     
-    
+    def broadcast_target_pose(self, target_pose = Pose()):
+        self.ur_target_pose_broadcaster.sendTransform((target_pose.position.x, target_pose.position.y, target_pose.position.z), (target_pose.orientation.x, target_pose.orientation.y, target_pose.orientation.z, 1), rospy.Time.now(), "/ur_target_pose", "/mocap")
     
     def limit_velocity(self, ur_command, ur_command_old):
         
@@ -195,6 +217,7 @@ class Control_ur():
             ur_command.linear.y = ur_command_old.linear.y + self.ur_acceleration_limit * abs(ur_command.linear.y - ur_command_old.linear.y) / (ur_command.linear.y - ur_command_old.linear.y)
         if abs(ur_command.linear.z - ur_command_old.linear.z) > self.ur_acceleration_limit:
             ur_command.linear.z = ur_command_old.linear.z + self.ur_acceleration_limit * abs(ur_command.linear.z - ur_command_old.linear.z) / (ur_command.linear.z - ur_command_old.linear.z)
+
 
         return ur_command
     
