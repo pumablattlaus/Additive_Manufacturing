@@ -5,6 +5,7 @@ import tf
 from std_msgs.msg import Int32
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Pose, Twist
+import math
 
 class Control_ur():
     
@@ -24,9 +25,13 @@ class Control_ur():
         self.ur_target_pose_broadcaster = tf.TransformBroadcaster()
         rospy.Subscriber("/path_index", Int32, self.path_index_callback)
         self.ur_command_publisher = rospy.Publisher("/UR10_r/twist_controller/command", Twist, queue_size=2)
+        self.path_index_publisher = rospy.Publisher('/path_index', Int32, queue_size=1)
         self.ur_command = Twist()
         self.ur_command_old = Twist()
         self.path_index = 0
+        self.path_speed = 0.0
+        self.path_distance = 0.0
+        self.time_old = rospy.Time.now()
         
         
         self.config()
@@ -73,9 +78,6 @@ class Control_ur():
             e_y = target_pose.position.y - lin[1]
             e_z = target_pose.position.z - lin[2]
             
-            print("e_x: " + str(e_x))
-            print("e_y: " + str(e_y))
-            
             # transform error to base frame
             e_x_base = R[0,0] * e_x + R[0,1] * e_y + R[0,2] * e_z
             e_y_base = R[1,0] * e_x + R[1,1] * e_y + R[1,2] * e_z
@@ -87,23 +89,9 @@ class Control_ur():
             self.ur_command.linear.z = e_z_base * self.Kpz
             
             # limit velocity
-            if abs(self.ur_command.linear.x) > self.ur_velocity_limit:
-                self.ur_command.linear.x = self.ur_velocity_limit * abs(self.ur_command.linear.x) / self.ur_command.linear.x
-            if abs(self.ur_command.linear.y) > self.ur_velocity_limit:
-                self.ur_command.linear.y = self.ur_velocity_limit * abs(self.ur_command.linear.y) / self.ur_command.linear.y
-            if abs(self.ur_command.linear.z) > self.ur_velocity_limit:
-                self.ur_command.linear.z = self.ur_velocity_limit * abs(self.ur_command.linear.z) / self.ur_command.linear.z
-            
-            # limit acceleration
-            if abs(self.ur_command.linear.x - self.ur_command_old.linear.x) > self.ur_acceleration_limit:
-                self.ur_command.linear.x = self.ur_command_old.linear.x + self.ur_acceleration_limit * abs(self.ur_command.linear.x - self.ur_command_old.linear.x) / (self.ur_command.linear.x - self.ur_command_old.linear.x)
-            if abs(self.ur_command.linear.y - self.ur_command_old.linear.y) > self.ur_acceleration_limit:
-                self.ur_command.linear.y = self.ur_command_old.linear.y + self.ur_acceleration_limit * abs(self.ur_command.linear.y - self.ur_command_old.linear.y) / (self.ur_command.linear.y - self.ur_command_old.linear.y)
-            if abs(self.ur_command.linear.z - self.ur_command_old.linear.z) > self.ur_acceleration_limit:
-                self.ur_command.linear.z = self.ur_command_old.linear.z + self.ur_acceleration_limit * abs(self.ur_command.linear.z - self.ur_command_old.linear.z) / (self.ur_command.linear.z - self.ur_command_old.linear.z)
-            self.ur_command_old = self.ur_command
-            
-            self.ur_command_publisher.publish(self.ur_command)
+            ur_command = self.limit_velocity(self.ur_command, self.ur_command_old)
+            self.ur_command_old = ur_command
+            self.ur_command_publisher.publish(ur_command)
             
             rate.sleep()
     
@@ -129,10 +117,6 @@ class Control_ur():
             e_y = pose.position.y - lin[1]
             e_z = pose.position.z - lin[2]
             
-            print("e_x: " + str(e_x))
-            print("e_y: " + str(e_y))
-            
-            
             # transform error to base frame
             e_x_base = R[0,0] * e_x + R[0,1] * e_y + R[0,2] * e_z
             e_y_base = R[1,0] * e_x + R[1,1] * e_y + R[1,2] * e_z
@@ -143,26 +127,22 @@ class Control_ur():
             self.ur_command.linear.y = e_y_base * self.Kpy
             self.ur_command.linear.z = e_z_base * self.Kpz
             
+            # compute path speed
+            path_speed = self.compute_path_speed_and_distance(self.ur_command)
+            
+            # check if next path point is reached
+            if self.path_distance + path_speed > self.path_lengths[self.path_index]:
+                self.path_index += 1
+                path_index_msg = Int32()
+                path_index_msg.data = self.path_index
+                self.path_index_publisher.publish(path_index_msg)
+                break
+            
             # limit velocity
-            if abs(self.ur_command.linear.x) > self.ur_velocity_limit:
-                self.ur_command.linear.x = self.ur_velocity_limit * abs(self.ur_command.linear.x) / self.ur_command.linear.x
-            if abs(self.ur_command.linear.y) > self.ur_velocity_limit:
-                self.ur_command.linear.y = self.ur_velocity_limit * abs(self.ur_command.linear.y) / self.ur_command.linear.y
-            if abs(self.ur_command.linear.z) > self.ur_velocity_limit:
-                self.ur_command.linear.z = self.ur_velocity_limit * abs(self.ur_command.linear.z) / self.ur_command.linear.z
+            ur_command = self.limit_velocity(self.ur_command, self.ur_command_old)
+            self.ur_command_old = ur_command
             
-            # limit acceleration
-            if abs(self.ur_command.linear.x - self.ur_command_old.linear.x) > self.ur_acceleration_limit:
-                self.ur_command.linear.x = self.ur_command_old.linear.x + self.ur_acceleration_limit * abs(self.ur_command.linear.x - self.ur_command_old.linear.x) / (self.ur_command.linear.x - self.ur_command_old.linear.x)
-            if abs(self.ur_command.linear.y - self.ur_command_old.linear.y) > self.ur_acceleration_limit:
-                self.ur_command.linear.y = self.ur_command_old.linear.y + self.ur_acceleration_limit * abs(self.ur_command.linear.y - self.ur_command_old.linear.y) / (self.ur_command.linear.y - self.ur_command_old.linear.y)
-            if abs(self.ur_command.linear.z - self.ur_command_old.linear.z) > self.ur_acceleration_limit:
-                self.ur_command.linear.z = self.ur_command_old.linear.z + self.ur_acceleration_limit * abs(self.ur_command.linear.z - self.ur_command_old.linear.z) / (self.ur_command.linear.z - self.ur_command_old.linear.z)
-            self.ur_command_old = self.ur_command
-            
-            self.ur_command_publisher.publish(self.ur_command)
-        
-            
+            self.ur_command_publisher.publish(ur_command)
         
             # check if target is reached
             if abs(e_x) < self.ur_target_tolerance and abs(e_y) < self.ur_target_tolerance:
@@ -175,10 +155,50 @@ class Control_ur():
             
             rate.sleep()
     
+    def compute_path_speed_and_distance(self,ur_command):
+        now = rospy.Time.now()
+        dt = (now - self.time_old).to_sec()
+        path_speed = math.sqrt(ur_command.linear.x**2 + ur_command.linear.y**2 + ur_command.linear.z**2) 
+        self.path_distance = self.path_distance + path_speed * dt
+        self.time_old = now
+        return path_speed
+       
     
     def path_index_callback(self, msg):
         print(msg.data)
         self.path_index = msg.data
+    
+    
+    def compute_path_lengths(self):
+        # compute path lengths
+        self.path_lengths = [0.0]
+        
+        for i in range(len(self.path.poses)-1):
+            self.path_lengths.append(self.path_lengths[i] + math.sqrt((self.path.poses[i+1].pose.position.x - self.path.poses[i].pose.position.x)**2 + (self.path.poses[i+1].pose.position.y - self.path.poses[i].pose.position.y)**2 + (self.path.poses[i+1].pose.position.z - self.path.poses[i].pose.position.z)**2))
+    
+    
+    
+    def limit_velocity(self, ur_command, ur_command_old):
+        
+        # limit velocity
+        if abs(ur_command.linear.x) > self.ur_velocity_limit:
+            ur_command.linear.x = self.ur_velocity_limit * abs(ur_command.linear.x) / ur_command.linear.x
+        if abs(ur_command.linear.y) > self.ur_velocity_limit:
+            ur_command.linear.y = self.ur_velocity_limit * abs(ur_command.linear.y) / ur_command.linear.y
+        if abs(ur_command.linear.z) > self.ur_velocity_limit:
+            ur_command.linear.z = self.ur_velocity_limit * abs(ur_command.linear.z) / ur_command.linear.z
+            
+        # limit acceleration
+        if abs(ur_command.linear.x - ur_command_old.linear.x) > self.ur_acceleration_limit:
+            ur_command.linear.x = ur_command_old.linear.x + self.ur_acceleration_limit * abs(ur_command.linear.x - ur_command_old.linear.x) / (ur_command.linear.x - ur_command_old.linear.x)
+        if abs(ur_command.linear.y - ur_command_old.linear.y) > self.ur_acceleration_limit:
+            ur_command.linear.y = ur_command_old.linear.y + self.ur_acceleration_limit * abs(ur_command.linear.y - ur_command_old.linear.y) / (ur_command.linear.y - ur_command_old.linear.y)
+        if abs(ur_command.linear.z - ur_command_old.linear.z) > self.ur_acceleration_limit:
+            ur_command.linear.z = ur_command_old.linear.z + self.ur_acceleration_limit * abs(ur_command.linear.z - ur_command_old.linear.z) / (ur_command.linear.z - ur_command_old.linear.z)
+
+        return ur_command
+    
+    
     
     
     

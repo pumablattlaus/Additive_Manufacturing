@@ -20,10 +20,11 @@ class Create_path():
         self.start_pose = Pose()
         self.target_pose = Pose()
         self.config()
-        self.path_pub = rospy.Publisher("/mir_path", Path, queue_size=2)
-        self.path_pub_ur = rospy.Publisher("/ur_path", Path, queue_size=2)
+        self.path_pub = rospy.Publisher("/mir_path", Path, queue_size=1)
+        rospy.sleep(0.1)
+        self.path_pub_ur = rospy.Publisher("/ur_path", Path, queue_size=1)
         
-        rospy.sleep(1)
+        rospy.sleep(0.1)
         
         # create path between two points
         #dist = self.target_pose.position.x - self.start_pose.position.x
@@ -64,9 +65,11 @@ class Create_path():
             
             ur_path.poses.append(ur_pose)
         
-        self.path_pub.publish(path)
-        rospy.sleep(1.5)
         self.path_pub_ur.publish(ur_path)
+        rospy.sleep(3)
+        self.path_pub.publish(path)
+        
+        
         
         
 if __name__=="__main__":
