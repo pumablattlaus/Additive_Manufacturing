@@ -27,8 +27,9 @@ class Control_mir_node():
         self.Kphi = rospy.get_param("~Kphi", 1)
         self.KP_vel = 1.0
         self.KP_omega = 1.0
+        self.target_vel_lin = 0.0
         self.control_rate = rospy.get_param("~control_rate", 100.0)
-        self.velocity_limit_lin = rospy.get_param("~velocity_limit_lin", 0.06)
+        self.velocity_limit_lin = rospy.get_param("~velocity_limit_lin", 0.1)
         self.velocity_limit_ang = rospy.get_param("~velocity_limit_ang", 0.5)
         self.acceleration_limit_lin = rospy.get_param("~acceleration_limit_lin", 1.0)
         self.acceleration_limit_ang = rospy.get_param("~acceleration_limit_ang", 1.0)
@@ -47,6 +48,7 @@ class Control_mir_node():
         if self.external_control:
             rospy.Subscriber('path_index', Int32, self.path_index_callback)
         
+        rospy.Subscriber("/mir_target_velocity", Twist, self.target_velocity_callback)
         
         rospy.sleep(1.0)
 
@@ -94,7 +96,7 @@ class Control_mir_node():
         # main loop
         while self.path_index < len(self.path_array)-1 and not rospy.is_shutdown() :
             
-            print("path_index: " + str(self.path_index))
+            #print("path_index: " + str(self.path_index))
             
             # compute distance to next point
             for i in range(len(self.robot_names)):
@@ -102,7 +104,7 @@ class Control_mir_node():
 
             # compute target velocity
             for i in range(len(self.robot_names)):
-                target_vels[i] = self.KP_vel * distances[i] * self.control_rate
+                target_vels[i] = self.target_vel_lin
 
             # limit target velocity
             vel_scaling_factor = 1.0
@@ -251,6 +253,10 @@ class Control_mir_node():
                 target_velocity.angular.z = v_w 
                 self.robot_twist_publishers[i].publish(target_velocity)
 
+            if dt.to_sec() > 0.011:
+                print("dt",dt.to_sec())
+                print("target_vels",target_velocity.linear.x)
+
             rate.sleep()
 
             
@@ -263,7 +269,6 @@ class Control_mir_node():
         phi_target = transformations.euler_from_quaternion([target_pose.orientation.x,target_pose.orientation.y,target_pose.orientation.z,target_pose.orientation.w])
         R = transformations.quaternion_matrix([actual_pose.orientation.x,actual_pose.orientation.y,actual_pose.orientation.z,actual_pose.orientation.w])
 
-        print("acutal pose: ",actual_pose.position.x,actual_pose.position.y)
 
         e_x = (target_pose.position.x- actual_pose.position.x)
         e_y = (target_pose.position.y - actual_pose.position.y)
@@ -339,6 +344,10 @@ class Control_mir_node():
                 robot_path.poses.append(pose)
             self.robot_path_publishers[i].publish(robot_path)
             rospy.sleep(0.5)
+
+    def target_velocity_callback(self, msg = Twist()):
+        self.target_vel_lin = msg.linear.x
+
 
     def mir_pose_callback(self, msg, i):
         self.mir_poses[i] = msg

@@ -20,6 +20,7 @@ class Create_path():
         self.start_pose = Pose()
         self.target_pose = Pose()
         self.config()
+        rospy.sleep(0.1)
         self.path_pub = rospy.Publisher("/mir_path", Path, queue_size=1)
         rospy.sleep(0.1)
         self.path_pub_ur = rospy.Publisher("/ur_path", Path, queue_size=1)
@@ -60,15 +61,16 @@ class Create_path():
             ur_pose.header.frame_id = "mocap"
             ur_pose.header.stamp = rospy.Time.now()
             ur_pose.header.seq = i
-            ur_pose.pose.position.x = 1.0*math.cos(i/self.point_per_meter) #+ 0.1 * math.sin(6*i/self.point_per_meter)
-            ur_pose.pose.position.y = 1.0*math.sin(i/self.point_per_meter)  #+ 0.1 * math.cos(6*i/self.point_per_meter)
+            ur_pose.pose.position.x = 1.0*math.cos(i/self.point_per_meter) + 0.05 * math.sin(6*i/self.point_per_meter)
+            ur_pose.pose.position.y = 1.0*math.sin(i/self.point_per_meter)  + 0.05 * math.cos(6*i/self.point_per_meter)
             
             ur_path.poses.append(ur_pose)
         
         self.path_pub_ur.publish(ur_path)
-        rospy.sleep(3)
+        rospy.sleep(0.1)
         self.path_pub.publish(path)
-        
+        rospy.sleep(0.1)
+        print("path published")
         
         
         

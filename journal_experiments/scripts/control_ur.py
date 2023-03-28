@@ -10,14 +10,14 @@ import math
 class Control_ur():
     
     def config(self):
-        self.Kpx = -0.2
-        self.Kpy = 0.2
+        self.Kpx = -0.4
+        self.Kpy = 0.4
         self.Kpz = 0.0
         self.Kpffx = 0.0  # feed-forward gain
         self.kpffy = 0.0
         self.ur_target_tolerance = 0.02
-        self.ur_acceleration_limit = 0.003
-        self.ur_jerk_limit = 0.1 
+        self.ur_acceleration_limit = 0.015
+        self.ur_jerk_limit = 0.3
         self.ur_velocity_limit = 0.1
         self.ur_target_velocity = 0.03
         self.path_distance_between_points = 0.01
@@ -31,6 +31,7 @@ class Control_ur():
         #rospy.Subscriber("/path_index", Int32, self.path_index_callback)
         self.ur_command_publisher = rospy.Publisher("/UR10_r/twist_controller/command_safe", Twist, queue_size=2)
         self.path_index_publisher = rospy.Publisher('/path_index', Int32, queue_size=1)
+        self.mir_target_velocity_publisher = rospy.Publisher('/mir_target_velocity', Twist, queue_size=1)
         self.ur_command = Twist()
         self.ur_command_old = Twist()
         self.path_index = 1
@@ -55,6 +56,11 @@ class Control_ur():
         # move ur to start pose
         self.move_ur_to_start_pose(self.ur_path.poses[0].pose)
         print("UR in start pose")
+        
+        # start moving the mir
+        mir_target_velocity = Twist()
+        mir_target_velocity.linear.x = self.ur_target_velocity * 2.0
+        self.mir_target_velocity_publisher.publish(mir_target_velocity)
         
         # start control loop
         self.update()
