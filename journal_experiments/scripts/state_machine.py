@@ -19,13 +19,13 @@ relative_positions_y = rospy.get_param("~relative_positions_y", [0])
 state = ""
 
 # define state Parse_path
-class Get_path(smach.State):
+class Move_to_start(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['formation_path_received'])
         
     def execute(self, userdata):
         formatin_plan_topic = rospy.get_param("/formation_plan_topic","/mir_path")
-        rospy.loginfo('Witing for path')
+        rospy.loginfo('Waiting for path')
         state_publisher("idle")
 
         global path
@@ -86,6 +86,9 @@ class Start_formation_controller(smach.State):
                                   "", "", path_array=path_array, active_robots=active_robots,
                                     robot_names=robot_names, relative_positions_x=relative_positions_x, relative_positions_y=relative_positions_y)
 
+        # launch the ur controller node
+        process = launch_ros_node("control_ur","journal_experiments","control_ur.py")
+
         while process.is_alive() and not rospy.is_shutdown():
                 rospy.sleep(0.1)
                 pass
@@ -102,7 +105,7 @@ class Parse_path(smach.State):
         rospy.loginfo('Parsing path')
         
         process = launch_ros_node("parse_path","journal_experiments","parse_path.py")
-                
+        
         return 'path_parsed'
 
 
@@ -162,11 +165,11 @@ def main():
     with sm:
         # Add states to the container
         smach.StateMachine.add('Parse_path', Parse_path(), 
-                               transitions={'path_parsed':'Get_path'})
-        smach.StateMachine.add('Get_path', Get_path(), 
+                               transitions={'path_parsed':'Move_to_start'})
+        smach.StateMachine.add('Move_to_start', Move_to_start(), 
                                transitions={'formation_path_received':'Start_formation_controller'})
         smach.StateMachine.add('Start_formation_controller', Start_formation_controller(), 
-                               transitions={'target_pose_reached':'Get_path','target_pose_not_reached':'Parse_path'})
+                               transitions={'target_pose_reached':'Move_to_start','target_pose_not_reached':'Parse_path'})
         smach.StateMachine.add('Move_UR_to_start_pose', Move_UR_to_start_pose(),
                                  transitions={'ur_initialized':'Follow_trajectory'})
         smach.StateMachine.add('Follow_trajectory', Follow_trajectory(),
