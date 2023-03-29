@@ -13,7 +13,7 @@ from std_msgs.msg import Int32
 class Control_mir_node():
 
     def __init__(self):
-        self.external_control = rospy.get_param("~external_control", True)
+        self.external_control = rospy.get_param("~external_control", False)
         self.path_array = rospy.get_param("~path_array", [])
         self.relative_positions_x = rospy.get_param("~relative_positions_x", [0])
         self.relative_positions_y = rospy.get_param("~relative_positions_y", [0])
@@ -25,11 +25,12 @@ class Control_mir_node():
         self.Kx = rospy.get_param("~Kx", 3)
         self.Ky = rospy.get_param("~Ky", 4)
         self.Kphi = rospy.get_param("~Kphi", 1)
-        self.KP_vel = 1.0
+        self.KP_vel = 0.2
         self.KP_omega = 1.0
         self.target_vel_lin = 0.0
+        self.safety_margin = 0.05
         self.control_rate = rospy.get_param("~control_rate", 100.0)
-        self.velocity_limit_lin = rospy.get_param("~velocity_limit_lin", 0.1)
+        self.velocity_limit_lin = rospy.get_param("~velocity_limit_lin", 0.25)
         self.velocity_limit_ang = rospy.get_param("~velocity_limit_ang", 0.5)
         self.acceleration_limit_lin = rospy.get_param("~acceleration_limit_lin", 1.0)
         self.acceleration_limit_ang = rospy.get_param("~acceleration_limit_ang", 1.0)
@@ -101,10 +102,18 @@ class Control_mir_node():
             # compute distance to next point
             for i in range(len(self.robot_names)):
                 distances[i] = self.path_lengths[i][self.path_index] - current_distances[i]
+                if distances[i] <= 0.0:
+                    rospy.logerr("distance to next point is negative")
+                    distances[i] = 0.000001
+            
+                
+            # print("path_lengths: " + str(self.path_lengths[0][self.path_index]))
+            # print("current_distances: " + str(current_distances[0]))
+            # print("distances: " + str(distances[0]))
 
             # compute target velocity
             for i in range(len(self.robot_names)):
-                target_vels[i] = self.target_vel_lin
+                target_vels[i] = self.target_vel_lin #+ self.KP_vel * (distances[i] - distances_old[i]) / (rospy.Time.now() - timestamp_old).to_sec()
 
             # limit target velocity
             vel_scaling_factor = 1.0
@@ -133,7 +142,7 @@ class Control_mir_node():
             if self.external_control == False:
                 # check if next point is reached
                 for i in range(len(self.robot_names)):
-                    if distances[i] <= abs(target_vels[i]) * rate.sleep_dur.to_sec(): 
+                    if distances[i] <= abs(target_vels[i]) * rate.sleep_dur.to_sec() * (1+self.safety_margin) : 
                         self.path_index += 1
                         distances_old = deepcopy(distances)
                         break
@@ -150,8 +159,6 @@ class Control_mir_node():
 
             # compute next target point
             for i in range(len(self.robot_names)):
-                # target_points[i][0] = self.robot_paths_x[i][path_index+2]*0.5 + self.robot_paths_x[i][path_index+1]*0.5
-                # target_points[i][1] = self.robot_paths_y[i][path_index+2]*0.5 + self.robot_paths_y[i][path_index+1]*0.5
                 target_points[i][0] = self.robot_paths_x[i][self.path_index]
                 target_points[i][1] = self.robot_paths_y[i][self.path_index]
 
@@ -171,14 +178,22 @@ class Control_mir_node():
                 elif target_angles[i] < -math.pi:
                     target_angles[i] += 2*math.pi
 
+
+
             # compute angle error
             for i in range(len(self.robot_names)):
                 angle_error = target_angles[i] - current_thetas[i]
+                #angle_error = angle_error % 2*math.pi
+                print("angle error: " + str(angle_error))
                 if angle_error > math.pi:
                     angle_error -= 2*math.pi
                 elif angle_error < -math.pi:
                     angle_error += 2*math.pi
                 target_omegas[i] = self.KP_omega * angle_error
+
+            print("angle error_mod: " + str(angle_error))
+            print("target angles: " + str(target_angles))
+            
 
             # limit angular velocity
             for i in range(len(self.robot_names)):
@@ -205,7 +220,8 @@ class Control_mir_node():
                 target_vels[i] *= vel_scaling_factor
                 target_omegas[i] *= vel_scaling_factor
 
-            dt = rospy.Time.now() - timestamp_old
+            now = rospy.Time.now()
+            dt = now - timestamp_old
             # compute target pose for each robot
             for i in range(len(self.robot_names)):
                 target_poses[i].position.x += target_vels[i] * math.cos(current_thetas[i]) * dt.to_sec()
@@ -225,15 +241,14 @@ class Control_mir_node():
                                             "target_pose_" + str(i),
                                             "mocap")
 
-            dt = rospy.Time.now() - timestamp_old
             # update current velocities
             for i in range(len(self.robot_names)):
                 current_vels[i] = target_vels[i]
                 current_omegas[i] = target_omegas[i]
                 current_thetas[i] += target_omegas[i] * dt.to_sec()
                 current_distances[i] += target_vels[i] * dt.to_sec()
-            timestamp_old = rospy.Time.now()
-
+            timestamp_old = now
+            
             # compute control law and publish target velocities
             for i in range(len(self.robot_names)):
                 target_velocity = Twist()
@@ -252,10 +267,6 @@ class Control_mir_node():
                 target_velocity.linear.x = u_v  
                 target_velocity.angular.z = v_w 
                 self.robot_twist_publishers[i].publish(target_velocity)
-
-            if dt.to_sec() > 0.011:
-                print("dt",dt.to_sec())
-                print("target_vels",target_velocity.linear.x)
 
             rate.sleep()
 
