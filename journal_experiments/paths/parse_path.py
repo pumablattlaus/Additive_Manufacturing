@@ -57,7 +57,7 @@ for i in range(0,len(wall_x)): #len(robot0_xhat)
     ur_path.poses[i].pose.position.y = ur_path_point.pose.position.y
     ur_path.poses[i].pose.position.z = ur_path_point.pose.position.z
 
-rospy.sleep(1)
+rospy.sleep(2)
 mir_pub.publish(mir_path)
 rospy.sleep(2)
 ur_pub.publish(ur_path)

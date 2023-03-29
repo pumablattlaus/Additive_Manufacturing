@@ -94,18 +94,16 @@ class Start_formation_controller(smach.State):
         return 'target_pose_reached'
         
 
-class Move_MiR_to_start_pose(smach.State):
+class Parse_path(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['mir_initialized'])
-        
+        smach.State.__init__(self, outcomes=['path_parsed'])
 
     def execute(self, userdata):
-        rospy.set_param("/state_machine/move_mir_to_start_pose",True)
-        rospy.loginfo('Executing state Move_MiR_to_start_pose')
-        while not rospy.get_param("/state_machine/mir_initialized") and not rospy.is_shutdown():
-            rospy.sleep(0.1)
-            pass
-        return 'mir_initialized'
+        rospy.loginfo('Parsing path')
+        
+        process = launch_ros_node("parse_path","journal_experiments","parse_path.py")
+                
+        return 'path_parsed'
 
 
 class Move_UR_to_start_pose(smach.State):
@@ -163,12 +161,12 @@ def main():
     # Open the container
     with sm:
         # Add states to the container
+        smach.StateMachine.add('Parse_path', Parse_path(), 
+                               transitions={'path_parsed':'Get_path'})
         smach.StateMachine.add('Get_path', Get_path(), 
                                transitions={'formation_path_received':'Start_formation_controller'})
         smach.StateMachine.add('Start_formation_controller', Start_formation_controller(), 
-                               transitions={'target_pose_reached':'Get_path','target_pose_not_reached':'Move_MiR_to_start_pose'})
-        smach.StateMachine.add('Move_MiR_to_start_pose', Move_MiR_to_start_pose(), 
-                               transitions={'mir_initialized':'Move_UR_to_start_pose'})
+                               transitions={'target_pose_reached':'Get_path','target_pose_not_reached':'Parse_path'})
         smach.StateMachine.add('Move_UR_to_start_pose', Move_UR_to_start_pose(),
                                  transitions={'ur_initialized':'Follow_trajectory'})
         smach.StateMachine.add('Follow_trajectory', Follow_trajectory(),
