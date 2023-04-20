@@ -31,11 +31,11 @@ class parse_path_trafo():
 
         self.mir_path = Path()
         self.mir_path_point = PoseStamped()
-        self.mir_path.header.frame_id = "mocap"
+        self.mir_path.header.frame_id = "map"
         self.mir_path.header.stamp = rospy.Time.now()
         self.ur_path = Path()
         self.ur_path_point = PoseStamped()
-        self.ur_path.header.frame_id = "mocap"
+        self.ur_path.header.frame_id = "map"
         self.ur_path.header.stamp = rospy.Time.now()
 
         rospy.Subscriber("/wall_frame_base", PoseWithCovarianceStamped, self.wall_frame_cb)
@@ -81,6 +81,7 @@ class parse_path_trafo():
         self.mir_pub.publish(self.mir_path)
         rospy.sleep(2.0)
         self.ur_pub.publish(self.ur_path)
+        rospy.sleep(2.0)
         
 
 

@@ -22,12 +22,17 @@ class Move_to_start_pose():
         
         
         self.move_base_simple_goal_pub = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=1)
-        self.cmd_vel_pub = rospy.Publisher('/mur620b/mir/cmd_vel', Twist, queue_size=1)
-        rospy.Subscriber('/mur620b/mir/mir_pose_simple', Pose, self.mir_pose_callback)
+        self.cmd_vel_pub = rospy.Publisher('/mur620c/mir/cmd_vel', Twist, queue_size=1)
+        rospy.Subscriber('/mur620c/mir/mir_pose_simple', Pose, self.mir_pose_callback)
         rospy.sleep(0.1)
 
 
     def run(self):
+        # wait for pose
+        rospy.loginfo('Waiting for first message from /mur620c/mir/mir_pose_simple...')
+        rospy.wait_for_message('/mur620c/mir/mir_pose_simple', Pose)
+        
+        
         # send the robot to the target pose using move base action server
                     #print(client.get_result())
             # turn the robot to face the target pose
@@ -106,7 +111,7 @@ class Move_to_start_pose():
         print('current_theta: ', self.current_theta)
         print('target_theta: ', self.target_pose[2])
 
-        while abs(self.current_theta - self.target_pose[2]) > self.angle_tolerance:
+        while abs(self.current_theta - self.target_pose[2]) > self.angle_tolerance and not rospy.is_shutdown():
             # compute the target theta
             target_theta = self.target_pose[2]
 

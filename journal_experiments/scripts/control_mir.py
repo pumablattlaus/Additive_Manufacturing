@@ -17,7 +17,7 @@ class Control_mir_node():
         self.path_array = rospy.get_param("~path_array", [])
         self.relative_positions_x = rospy.get_param("~relative_positions_x", [0])
         self.relative_positions_y = rospy.get_param("~relative_positions_y", [0])
-        self.robot_names = rospy.get_param("~robot_names", ["mur620b"])
+        self.robot_names = rospy.get_param("~robot_names", ["mur620c"])
         self.mir_poses = [Pose() for i in range(len(self.robot_names))]
         self.target_pose_broadcaster = broadcaster.TransformBroadcaster()
         self.current_vel = 0.0
@@ -28,7 +28,7 @@ class Control_mir_node():
         self.KP_vel = 0.2
         self.KP_omega = 1.0
         self.target_vel_lin = 0.0
-        self.safety_margin = 0.05
+        self.safety_margin = 0.8
         self.control_rate = rospy.get_param("~control_rate", 100.0)
         self.velocity_limit_lin = rospy.get_param("~velocity_limit_lin", 0.25)
         self.velocity_limit_ang = rospy.get_param("~velocity_limit_ang", 0.5)
@@ -178,6 +178,12 @@ class Control_mir_node():
                 elif target_angles[i] < -math.pi:
                     target_angles[i] += 2*math.pi
 
+            # prevent current angle from jumping from -pi to pi
+            for i in range(len(self.robot_names)):
+                if current_thetas[i] > math.pi:
+                    current_thetas[i] -= 2*math.pi
+                elif current_thetas[i] < -math.pi:
+                    current_thetas[i] += 2*math.pi
 
 
             # compute angle error

@@ -13,7 +13,7 @@ from std_msgs.msg import String
 # define global variables
 path = Path();
 active_robots = rospy.get_param("~active_robots", 1)
-robot_names = rospy.get_param("~robot_names", ["mur620b"])
+robot_names = rospy.get_param("~robot_names", ["mur620c"])
 relative_positions_x = rospy.get_param("~relative_positions_x", [0])
 relative_positions_y = rospy.get_param("~relative_positions_y", [0])
 state = ""
@@ -33,6 +33,8 @@ class Move_to_start(smach.State):
         rospy.loginfo('formation path received')
         state_publisher("moving_to_start_pose")
         start_pose = path.poses[0].pose
+
+        print("start_pose: ", start_pose)
 
         # teleport the robot away from the formation to avoid collision
         #teleport_robots_away(robot_names)
@@ -104,7 +106,7 @@ class Parse_path(smach.State):
     def execute(self, userdata):
         rospy.loginfo('Parsing path')
         
-        process = launch_ros_node("create_path","journal_experiments","create_path.py")
+        #process = launch_ros_node("create_path","journal_experiments","create_path.py")
         
         return 'path_parsed'
 

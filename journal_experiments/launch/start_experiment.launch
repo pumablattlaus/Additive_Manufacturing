@@ -1,0 +1,8 @@
+<launch>
+
+<!-- start the state machine -->
+<node pkg="journal_experiments" type="state_machine.py" name="state_machine" output="screen" />
+
+
+
+</launch>
