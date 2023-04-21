@@ -61,15 +61,6 @@ class Move_to_start(smach.State):
 
         return 'formation_path_received'
 
-def teleport_robots_away(robot_names):
-    for i in range(0,len(robot_names)):
-        storage_pose = [1000 + 2*i, 0, 0]
-        process = launch_ros_node("teleport_to_start_pose","journal_experiments","teleport_to_start_pose.py", "", "", target_pose=storage_pose, robot_name=robot_names[i])
-
-        # wait for the node to finish
-        while process.is_alive() and not rospy.is_shutdown():
-            rospy.sleep(0.1)
-
 # define state Compute_trajectory
 class Start_formation_controller(smach.State):
     def __init__(self):

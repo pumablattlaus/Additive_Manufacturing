@@ -22,13 +22,13 @@ class Control_mir_node():
         self.target_pose_broadcaster = broadcaster.TransformBroadcaster()
         self.current_vel = 0.0
         self.current_omega = 0.0
-        self.Kx = rospy.get_param("~Kx", 3)
-        self.Ky = rospy.get_param("~Ky", 4)
-        self.Kphi = rospy.get_param("~Kphi", 1)
+        self.Kx = rospy.get_param("~Kx", 0.5)
+        self.Ky = rospy.get_param("~Ky", 1.25)
+        self.Kphi = rospy.get_param("~Kphi", 0.35)
         self.KP_vel = 0.2
         self.KP_omega = 1.0
         self.target_vel_lin = 0.0
-        self.safety_margin = 0.8
+        self.safety_margin = 2.0
         self.control_rate = rospy.get_param("~control_rate", 100.0)
         self.velocity_limit_lin = rospy.get_param("~velocity_limit_lin", 0.25)
         self.velocity_limit_ang = rospy.get_param("~velocity_limit_ang", 0.5)
@@ -96,21 +96,14 @@ class Control_mir_node():
         timestamp_old = rospy.Time.now()
         # main loop
         while self.path_index < len(self.path_array)-1 and not rospy.is_shutdown() :
-            
-            #print("path_index: " + str(self.path_index))
-            
+                        
             # compute distance to next point
             for i in range(len(self.robot_names)):
                 distances[i] = self.path_lengths[i][self.path_index] - current_distances[i]
                 if distances[i] <= 0.0:
                     rospy.logerr("distance to next point is negative")
                     distances[i] = 0.000001
-            
-                
-            # print("path_lengths: " + str(self.path_lengths[0][self.path_index]))
-            # print("current_distances: " + str(current_distances[0]))
-            # print("distances: " + str(distances[0]))
-
+                            
             # compute target velocity
             for i in range(len(self.robot_names)):
                 target_vels[i] = self.target_vel_lin #+ self.KP_vel * (distances[i] - distances_old[i]) / (rospy.Time.now() - timestamp_old).to_sec()
@@ -195,11 +188,7 @@ class Control_mir_node():
                     angle_error -= 2*math.pi
                 elif angle_error < -math.pi:
                     angle_error += 2*math.pi
-                target_omegas[i] = self.KP_omega * angle_error
-
-            print("angle error_mod: " + str(angle_error))
-            print("target angles: " + str(target_angles))
-            
+                target_omegas[i] = self.KP_omega * angle_error         
 
             # limit angular velocity
             for i in range(len(self.robot_names)):
@@ -275,11 +264,6 @@ class Control_mir_node():
                 self.robot_twist_publishers[i].publish(target_velocity)
 
             rate.sleep()
-
-            
-
-            
-            
 
     def cartesian_controller(self,actual_pose = Pose(),target_pose = Pose(),target_velocity = Twist(),i = 0):
         phi_act = transformations.euler_from_quaternion([actual_pose.orientation.x,actual_pose.orientation.y,actual_pose.orientation.z,actual_pose.orientation.w])
