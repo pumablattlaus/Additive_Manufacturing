@@ -12,9 +12,9 @@ class MoveURToStartPose():
     def config(self):
         self.ur_velocity_limit = rospy.get_param("~ur_velocity_limit", 0.1)
         self.ur_acceleration_limit = rospy.get_param("~ur_acceleration_limit", 0.2)
-        self.Kpx = rospy.get_param("~Kpx", 0.2)
-        self.Kpy = rospy.get_param("~Kpy", 0.2)
-        self.Kpz = rospy.get_param("~Kpz", 0.2)
+        self.Kpx = rospy.get_param("~Kpx", -0.02)
+        self.Kpy = rospy.get_param("~Kpy", -0.02)
+        self.Kpz = rospy.get_param("~Kpz", 0.02)
         self.ur_target_tolerance = rospy.get_param("~ur_target_tolerance", 0.01)
         pass
     
@@ -34,7 +34,7 @@ class MoveURToStartPose():
         self.ur_start_pose.orientation.z = ur_start_pose_array[5]
         self.ur_start_pose.orientation.w = ur_start_pose_array[6]
         
-        self.ur_command_topic = rospy.get_param("~ur_command_topic", "/mur620/UR10_r/twist_controller/command_safe")
+        self.ur_command_topic = rospy.get_param("~ur_command_topic", "/mur620c/UR10_r/twist_controller/command_safe")
         self.ur_pose_topic = rospy.get_param("~ur_pose_topic", "/mur620c/UR10_r/ur_calibrated_pose")
         self.ur_base_link_frame_id = rospy.get_param("~ur_base_link_frame_id", "mur620c/UR10_r/base_link")
         self.ur_twist_publisher = rospy.Publisher(self.ur_command_topic, Twist, queue_size=1)
