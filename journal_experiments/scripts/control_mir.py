@@ -23,8 +23,8 @@ class Control_mir_node():
         self.current_vel = 0.0
         self.current_omega = 0.0
         self.Kx = rospy.get_param("~Kx", 0.5)
-        self.Ky = rospy.get_param("~Ky", 1.25)
-        self.Kphi = rospy.get_param("~Kphi", 0.35)
+        self.Ky = rospy.get_param("~Ky", 1.0)
+        self.Kphi = rospy.get_param("~Kphi", 0.4)
         self.KP_vel = 0.2
         self.KP_omega = 1.0
         self.target_vel_lin = 0.0
