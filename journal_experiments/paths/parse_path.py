@@ -92,8 +92,8 @@ for i in range(0,len(wall_x)-1): #len(robot0_xhat)
 
 rospy.sleep(2)
 mir_pub.publish(mir_path)
-rospy.sleep(3)
-#ur_pub.publish(ur_path)
+rospy.sleep(5)
+ur_pub.publish(ur_path)
 rospy.sleep(3)
 
 

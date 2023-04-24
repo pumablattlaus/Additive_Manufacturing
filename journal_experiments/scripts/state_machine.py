@@ -9,9 +9,11 @@ from tf import transformations
 import math
 from copy import deepcopy
 from std_msgs.msg import String
+from geometry_msgs.msg import Pose
 
 # define global variables
 path = Path();
+ur_path = Path();
 active_robots = rospy.get_param("~active_robots", 1)
 robot_names = rospy.get_param("~robot_names", ["mur620c"])
 relative_positions_x = rospy.get_param("~relative_positions_x", [0])
@@ -25,12 +27,18 @@ class Move_to_start(smach.State):
         
     def execute(self, userdata):
         formatin_plan_topic = rospy.get_param("/formation_plan_topic","/mir_path")
-        rospy.loginfo('Waiting for path')
+        rospy.loginfo('Waiting for mir path')
         state_publisher("idle")
 
         global path
         path = rospy.wait_for_message(formatin_plan_topic, Path)
-        rospy.loginfo('formation path received')
+        rospy.loginfo('mir path received')
+        
+        rospy.loginfo('Waiting for mir path')
+        global mir_path
+        ur_path = rospy.wait_for_message("/ur_path", Path)
+        rospy.loginfo('ur path received')
+        
         state_publisher("moving_to_start_pose")
         start_pose = path.poses[0].pose
 
@@ -59,7 +67,7 @@ class Move_to_start(smach.State):
                 rospy.sleep(0.1)
             rospy.loginfo(robot_names[i] + " in start pose")
 
-        return 'formation_path_received'
+        return 'mir_in_start_pose'
 
 # define state Compute_trajectory
 class Start_formation_controller(smach.State):
@@ -97,7 +105,7 @@ class Parse_path(smach.State):
     def execute(self, userdata):
         rospy.loginfo('Parsing path')
         
-        #process = launch_ros_node("create_path","journal_experiments","create_path.py")
+        process = launch_ros_node("parse_path","journal_experiments","parse_path.py")
         
         return 'path_parsed'
 
@@ -108,12 +116,23 @@ class Move_UR_to_start_pose(smach.State):
         
 
     def execute(self, userdata):
-        rospy.set_param("/state_machine/move_ur_to_start_pose",True)
+        
+        ur_start_pose = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        ur_start_pose[0] = ur_path.poses[0].pose.position.x
+        ur_start_pose[1] = ur_path.poses[0].pose.position.y
+        ur_start_pose[2] = ur_path.poses[0].pose.position.z
+        ur_start_pose[3] = ur_path.poses[0].pose.orientation.x
+        ur_start_pose[4] = ur_path.poses[0].pose.orientation.y
+        ur_start_pose[5] = ur_path.poses[0].pose.orientation.z
+        ur_start_pose[6] = ur_path.poses[0].pose.orientation.w
+        
         rospy.loginfo('Executing state Move_UR_to_start_pose')
+        process = launch_ros_node("move_ur_to_start_pose","journal_experiments","move_ur_to_start_pose.py", "", "", ur_start_pose=ur_start_pose)
+        
         while not rospy.get_param("/state_machine/ur_initialized") and not rospy.is_shutdown():
             rospy.sleep(0.1)
             pass
-        return 'ur_initialized'
+        return 'ur_in_start_pose'
 
 class Follow_trajectory(smach.State): 
     def __init__(self):
@@ -160,11 +179,11 @@ def main():
         smach.StateMachine.add('Parse_path', Parse_path(), 
                                transitions={'path_parsed':'Move_to_start'})
         smach.StateMachine.add('Move_to_start', Move_to_start(), 
-                               transitions={'formation_path_received':'Start_formation_controller'})
+                               transitions={'mir_in_start_pose':'Move_UR_to_start_pose'})
         smach.StateMachine.add('Start_formation_controller', Start_formation_controller(), 
                                transitions={'target_pose_reached':'Move_to_start','target_pose_not_reached':'Parse_path'})
         smach.StateMachine.add('Move_UR_to_start_pose', Move_UR_to_start_pose(),
-                                 transitions={'ur_initialized':'Follow_trajectory'})
+                                 transitions={'ur_in_start_pose':'Start_formation_controller'})
         smach.StateMachine.add('Follow_trajectory', Follow_trajectory(),
                                 transitions={'done':'outcome5'})
     # Execute SMACH plan
