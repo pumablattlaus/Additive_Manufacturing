@@ -5,7 +5,7 @@ import smach
 import smach_ros
 from nav_msgs.msg import Path
 import roslaunch
-from tf import transformations
+from tf import transformations, TransformListener
 import math
 from copy import deepcopy
 from std_msgs.msg import String
@@ -23,7 +23,7 @@ state = ""
 # define state Parse_path
 class Move_to_start(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['formation_path_received'])
+        smach.State.__init__(self, outcomes=['mir_in_start_pose'])
         
     def execute(self, userdata):
         formatin_plan_topic = rospy.get_param("/formation_plan_topic","/mir_path")
@@ -34,8 +34,8 @@ class Move_to_start(smach.State):
         path = rospy.wait_for_message(formatin_plan_topic, Path)
         rospy.loginfo('mir path received')
         
-        rospy.loginfo('Waiting for mir path')
-        global mir_path
+        rospy.loginfo('Waiting for ur path')
+        global ur_path
         ur_path = rospy.wait_for_message("/ur_path", Path)
         rospy.loginfo('ur path received')
         
@@ -44,28 +44,22 @@ class Move_to_start(smach.State):
 
         print("start_pose: ", start_pose)
 
-        # teleport the robot away from the formation to avoid collision
-        #teleport_robots_away(robot_names)
+        # for i in range(0,active_robots):
+        #     # compute the target pose 
+        #     target_pose = deepcopy(start_pose)
+        #     theta = transformations.euler_from_quaternion([target_pose.orientation.x, target_pose.orientation.y, target_pose.orientation.z, target_pose.orientation.w])[2]
+        #     #theta = math.atan2(path.poses[1].pose.position.y - path.poses[0].pose.position.y, path.poses[1].pose.position.x - path.poses[0].pose.position.x)
+        #     target_pose.position.x += relative_positions_x[i] * math.cos(theta) - relative_positions_y[i] * math.sin(theta)
+        #     target_pose.position.y += relative_positions_x[i] * math.sin(theta) + relative_positions_y[i] * math.cos(theta)
+        #     target_pose_ = [target_pose.position.x, target_pose.position.y, theta]
 
-        for i in range(0,active_robots):
-            # compute the target pose 
-            target_pose = deepcopy(start_pose)
-            theta = transformations.euler_from_quaternion([target_pose.orientation.x, target_pose.orientation.y, target_pose.orientation.z, target_pose.orientation.w])[2]
-            #theta = math.atan2(path.poses[1].pose.position.y - path.poses[0].pose.position.y, path.poses[1].pose.position.x - path.poses[0].pose.position.x)
-            target_pose.position.x += relative_positions_x[i] * math.cos(theta) - relative_positions_y[i] * math.sin(theta)
-            target_pose.position.y += relative_positions_x[i] * math.sin(theta) + relative_positions_y[i] * math.cos(theta)
-            target_pose_ = [target_pose.position.x, target_pose.position.y, theta]
+        #     # # launch the move_to_start_pose node                
+        #     process = launch_ros_node("move_to_start_pose","journal_experiments","move_to_start_pose.py", robot_names[i] + "/", "", target_pose=target_pose_)
 
-            # teleport the robot to the start pose
-            # process = launch_ros_node("teleport_to_start_pose","formation_controller","teleport_to_start_pose.py", "", "", target_pose=target_pose_, robot_name=robot_names[i])
-
-            # # launch the move_to_start_pose node                
-            process = launch_ros_node("move_to_start_pose","journal_experiments","move_to_start_pose.py", robot_names[i] + "/", "", target_pose=target_pose_)
-
-            # wait for the node to finish
-            while process.is_alive() and not rospy.is_shutdown():
-                rospy.sleep(0.1)
-            rospy.loginfo(robot_names[i] + " in start pose")
+        #     # wait for the node to finish
+        #     while process.is_alive() and not rospy.is_shutdown():
+        #         rospy.sleep(0.1)
+        #     rospy.loginfo(robot_names[i] + " in start pose")
 
         return 'mir_in_start_pose'
 
@@ -112,15 +106,30 @@ class Parse_path(smach.State):
 
 class Move_UR_to_start_pose(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['ur_initialized'])
+        smach.State.__init__(self, outcomes=['ur_in_start_pose'])
         
 
     def execute(self, userdata):
         
+        relative_positions_x_global = path.poses[0].pose.position.x - ur_path.poses[0].pose.position.x
+        relative_positions_y_global = path.poses[0].pose.position.y - ur_path.poses[0].pose.position.y
+        
+        mir_angle = transformations.euler_from_quaternion([path.poses[0].pose.orientation.x, path.poses[0].pose.orientation.y, path.poses[0].pose.orientation.z, path.poses[0].pose.orientation.w])[2]
+        
+        relative_positions_x_local = relative_positions_x_global * math.cos(mir_angle) + relative_positions_y_global * math.sin(mir_angle)
+        relative_positions_y_local = -relative_positions_x_global * math.sin(mir_angle) + relative_positions_y_global * math.cos(mir_angle)
+
+        
+        # get transformation between ur and mir
+        tf_listener = TransformListener()
+        # wait for transform
+        tf_listener.waitForTransform(robot_names[0] + "/mir/base_link", robot_names[0] + "/UR10_r/base_link", rospy.Time(0), rospy.Duration(4.0))
+        lin, ang = tf_listener.lookupTransform(robot_names[0] + "/mir/base_link", robot_names[0] + "/UR10_r/base_link", rospy.Time(0))
+        
         ur_start_pose = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        ur_start_pose[0] = ur_path.poses[0].pose.position.x
-        ur_start_pose[1] = ur_path.poses[0].pose.position.y
-        ur_start_pose[2] = ur_path.poses[0].pose.position.z
+        ur_start_pose[0] = relative_positions_x_local + lin[0]
+        ur_start_pose[1] = relative_positions_y_local + lin[1]
+        ur_start_pose[2] = ur_path.poses[0].pose.position.z - lin[2]
         ur_start_pose[3] = ur_path.poses[0].pose.orientation.x
         ur_start_pose[4] = ur_path.poses[0].pose.orientation.y
         ur_start_pose[5] = ur_path.poses[0].pose.orientation.z
@@ -129,9 +138,9 @@ class Move_UR_to_start_pose(smach.State):
         rospy.loginfo('Executing state Move_UR_to_start_pose')
         process = launch_ros_node("move_ur_to_start_pose","journal_experiments","move_ur_to_start_pose.py", "", "", ur_start_pose=ur_start_pose)
         
-        while not rospy.get_param("/state_machine/ur_initialized") and not rospy.is_shutdown():
-            rospy.sleep(0.1)
-            pass
+        while process.is_alive() and not rospy.is_shutdown():
+                rospy.sleep(0.1)
+                pass
         return 'ur_in_start_pose'
 
 class Follow_trajectory(smach.State): 
