@@ -67,6 +67,9 @@ class Control_ur():
         # get length factor
         self.length_factor = rospy.get_param("~length_factor")
         
+        # compute the distance traveled along the path at each point
+        self.compute_path_lengths()
+        
         # get the transform between mir and ur
         self.mir_ur_transform = Transform()
         self.get_mir_ur_transform()
@@ -76,6 +79,13 @@ class Control_ur():
         mir_target_velocity.linear.x = self.ur_target_velocity * self.length_factor
         self.mir_target_velocity_publisher.publish(mir_target_velocity)
         
+        # wait for the subscriber to receive the first pose message
+        rospy.loginfo("Waiting for mir cmd_vel message")
+        rospy.wait_for_message(self.mir_cmd_vel_topic, Twist)
+        rospy.loginfo("Received mir cmd_vel message")
+        # wait for the mir to start moving
+        
+        
         # start control loop
         self.control()
         
@@ -84,8 +94,18 @@ class Control_ur():
     
     def control(self):
                 
+        self.time_old = rospy.Time.now()
         rate = rospy.Rate(100)
-        while not rospy.is_shutdown():            
+        while not rospy.is_shutdown():     
+            # increase path index periodically based on the target velocity
+            time_per_point = self.path_distance_between_points / self.ur_target_velocity
+            if abs(rospy.Time.now() - self.path_index_timestamp) > rospy.Duration(time_per_point):
+                self.path_index += 1
+                path_index_msg = Int32()
+                path_index_msg.data = self.path_index
+                self.path_index_publisher.publish(path_index_msg)
+                self.path_index_timestamp = rospy.Time.now()  
+                   
             # get target pose from path
             ur_target_pose_global = Pose()
             ur_target_pose_global.position.x = self.ur_path_array[self.path_index][0]
@@ -133,9 +153,21 @@ class Control_ur():
             ur_twist_command.linear.x = ur_twist_command.linear.x + ur_base_link_velocity.linear.x
             ur_twist_command.linear.y = ur_twist_command.linear.y + ur_base_link_velocity.linear.y
             
+            # compute path speed
+            path_speed = self.compute_path_speed_and_distance(ur_twist_command)
+            
+            # check if next path point is reached
+            if self.path_distance + path_speed > self.path_lengths[self.path_index]:
+                self.path_index += 1
+                path_index_msg = Int32()
+                path_index_msg.data = self.path_index
+                self.path_index_publisher.publish(path_index_msg)
+                continue
+            
+            
+            
             # set timestamp on initial run and save initial target pose
             if self.initial_run:
-                self.time_old = rospy.Time.now()
                 self.initial_run = False
                 self.integrated_ur_target_pose = ur_target_pose_local
             
@@ -160,27 +192,7 @@ class Control_ur():
                 self.time_old = rospy.Time.now()
                 self.initial_run = False
             
-            # compute path speed
-            path_speed = self.compute_path_speed_and_distance(ur_command)
-            
-            # increase path index periodically based on the target velocity
-            time_per_point = self.path_distance_between_points / self.ur_target_velocity
-            if abs(rospy.Time.now() - self.path_index_timestamp) > rospy.Duration(time_per_point):
-                self.path_index += 1
-                path_index_msg = Int32()
-                path_index_msg.data = self.path_index
-                self.path_index_publisher.publish(path_index_msg)
-                self.path_index_timestamp = rospy.Time.now() 
-                continue         
-            
-            # self.broadcast_target_pose(target_pose)
-            # check if next path point is reached
-            if self.path_distance + path_speed > self.path_lengths[self.path_index]:
-                self.path_index += 1
-                path_index_msg = Int32()
-                path_index_msg.data = self.path_index
-                self.path_index_publisher.publish(path_index_msg)
-                continue
+
             
             # publish command
             self.ur_command_old = ur_command
@@ -219,9 +231,10 @@ class Control_ur():
         # compute path lengths
         self.path_lengths = [0.0]
         
-        for i in range(len(self.ur_path.poses)-1):
-            self.path_lengths.append(self.path_lengths[i] + math.sqrt((self.ur_path.poses[i+1].pose.position.x - self.ur_path.poses[i].pose.position.x)**2 + (self.ur_path.poses[i+1].pose.position.y - self.ur_path.poses[i].pose.position.y)**2 + (self.ur_path.poses[i+1].pose.position.z - self.ur_path.poses[i].pose.position.z)**2))
-    
+        for i in range(len(self.ur_path_array)-1):
+            self.path_lengths.append(self.path_lengths[i] + math.sqrt((self.ur_path_array[i][0] - self.ur_path_array[i+1][0])**2 + (self.ur_path_array[i][1] - self.ur_path_array[i+1][1])**2 + (self.ur_path_array[i][2] - self.ur_path_array[i+1][2])**2))
+            
+            
     def mir_cmd_vel_callback(self, msg = Twist()):
         self.mir_cmd_vel = msg
     

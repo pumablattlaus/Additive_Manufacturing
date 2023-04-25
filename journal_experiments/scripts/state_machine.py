@@ -81,8 +81,19 @@ class Start_formation_controller(smach.State):
                                   "", "", path_array=path_array, active_robots=active_robots,
                                     robot_names=robot_names, relative_positions_x=relative_positions_x, relative_positions_y=relative_positions_y)
 
+        # convert ur path to a list of poses 
+        ur_path_array = []
+        for pose in ur_path.poses:
+            theta = transformations.euler_from_quaternion([pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])[2]
+            ur_path_array.append([pose.pose.position.x, pose.pose.position.y , pose.pose.position.z, theta])
+
+        # compute length of ur path and mir path to compare them
+        mir_path_length = compute_path_length(path)
+        ur_path_length = compute_path_length(ur_path)
+        length_factor = mir_path_length / ur_path_length
+
         # launch the ur controller node
-        process = launch_ros_node("control_ur","journal_experiments","control_ur.py")
+        process = launch_ros_node("control_ur","journal_experiments","control_ur.py", "", "", ur_path_array=ur_path_array, length_factor=length_factor, mir_path_array = path_array)
 
         while process.is_alive() and not rospy.is_shutdown():
                 rospy.sleep(0.1)
@@ -173,6 +184,11 @@ def launch_ros_node(node_name, package_name, node_executable, namespace="/", nod
     process = launch.launch(node)
     return process
 
+def compute_path_length(path):
+    path_length = 0.0
+    for pose in path.poses:
+        path_length += math.sqrt(pose.pose.position.x**2 + pose.pose.position.y**2)
+    return path_length
 
 # main
 def main():

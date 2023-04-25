@@ -183,7 +183,6 @@ class Control_mir_node():
             for i in range(len(self.robot_names)):
                 angle_error = target_angles[i] - current_thetas[i]
                 #angle_error = angle_error % 2*math.pi
-                print("angle error: " + str(angle_error))
                 if angle_error > math.pi:
                     angle_error -= 2*math.pi
                 elif angle_error < -math.pi:
