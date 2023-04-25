@@ -10,11 +10,11 @@ import math
 class MoveURToStartPose():
     
     def config(self):
-        self.ur_velocity_limit = rospy.get_param("~ur_velocity_limit", 0.1)
-        self.ur_acceleration_limit = rospy.get_param("~ur_acceleration_limit", 0.2)
-        self.Kpx = rospy.get_param("~Kpx", -0.02)
-        self.Kpy = rospy.get_param("~Kpy", -0.02)
-        self.Kpz = rospy.get_param("~Kpz", 0.02)
+        self.ur_velocity_limit = rospy.get_param("~ur_velocity_limit", 0.06)
+        self.ur_acceleration_limit = rospy.get_param("~ur_acceleration_limit", 0.02)
+        self.Kpx = rospy.get_param("~Kpx", 0.1)
+        self.Kpy = rospy.get_param("~Kpy", 0.1)
+        self.Kpz = rospy.get_param("~Kpz", 0.1)
         self.ur_target_tolerance = rospy.get_param("~ur_target_tolerance", 0.01)
         pass
     
@@ -56,11 +56,15 @@ class MoveURToStartPose():
              # broadcast start pose
             self.broadcast_target_pose(self.ur_start_pose)
         
+            # the ur is mounted backwards, so we have to invert the x and y axis
+            ur_start_pose_x = - self.ur_start_pose.position.x
+            ur_start_pose_y = - self.ur_start_pose.position.y
+        
             # calculate error
-            e_x = self.ur_start_pose.position.x - self.ur_pose_current.position.x
-            e_y = self.ur_start_pose.position.y - self.ur_pose_current.position.y
+            e_x = ur_start_pose_x - self.ur_pose_current.position.x
+            e_y = ur_start_pose_y - self.ur_pose_current.position.y
             e_z = self.ur_start_pose.position.z - self.ur_pose_current.position.z
-            
+                       
             # calculate command
             self.ur_command.linear.x = e_x * self.Kpx
             self.ur_command.linear.y = e_y * self.Kpy
@@ -69,7 +73,7 @@ class MoveURToStartPose():
             # limit velocity
             ur_command = self.limit_velocity(self.ur_command, self.ur_command_old)
             self.ur_command_old = ur_command
-            
+                       
             self.ur_twist_publisher.publish(ur_command)
         
             # check if target is reached
