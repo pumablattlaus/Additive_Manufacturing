@@ -44,22 +44,22 @@ class Move_to_start(smach.State):
 
         print("start_pose: ", start_pose)
 
-        # for i in range(0,active_robots):
-        #     # compute the target pose 
-        #     target_pose = deepcopy(start_pose)
-        #     theta = transformations.euler_from_quaternion([target_pose.orientation.x, target_pose.orientation.y, target_pose.orientation.z, target_pose.orientation.w])[2]
-        #     #theta = math.atan2(path.poses[1].pose.position.y - path.poses[0].pose.position.y, path.poses[1].pose.position.x - path.poses[0].pose.position.x)
-        #     target_pose.position.x += relative_positions_x[i] * math.cos(theta) - relative_positions_y[i] * math.sin(theta)
-        #     target_pose.position.y += relative_positions_x[i] * math.sin(theta) + relative_positions_y[i] * math.cos(theta)
-        #     target_pose_ = [target_pose.position.x, target_pose.position.y, theta]
+        for i in range(0,active_robots):
+            # compute the target pose 
+            target_pose = deepcopy(start_pose)
+            theta = transformations.euler_from_quaternion([target_pose.orientation.x, target_pose.orientation.y, target_pose.orientation.z, target_pose.orientation.w])[2]
+            #theta = math.atan2(path.poses[1].pose.position.y - path.poses[0].pose.position.y, path.poses[1].pose.position.x - path.poses[0].pose.position.x)
+            target_pose.position.x += relative_positions_x[i] * math.cos(theta) - relative_positions_y[i] * math.sin(theta)
+            target_pose.position.y += relative_positions_x[i] * math.sin(theta) + relative_positions_y[i] * math.cos(theta)
+            target_pose_ = [target_pose.position.x, target_pose.position.y, theta]
 
-        #     # # launch the move_to_start_pose node                
-        #     process = launch_ros_node("move_to_start_pose","journal_experiments","move_to_start_pose.py", robot_names[i] + "/", "", target_pose=target_pose_)
+            # # launch the move_to_start_pose node                
+            process = launch_ros_node("move_to_start_pose","journal_experiments","move_to_start_pose.py", robot_names[i] + "/", "", target_pose=target_pose_)
 
-        #     # wait for the node to finish
-        #     while process.is_alive() and not rospy.is_shutdown():
-        #         rospy.sleep(0.1)
-        #     rospy.loginfo(robot_names[i] + " in start pose")
+            # wait for the node to finish
+            while process.is_alive() and not rospy.is_shutdown():
+                rospy.sleep(0.1)
+            rospy.loginfo(robot_names[i] + " in start pose")
 
         return 'mir_in_start_pose'
 

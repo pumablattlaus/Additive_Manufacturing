@@ -141,7 +141,7 @@ class ur_velocity_controller():
             dist_mir_ur = math.sqrt(pow(self.ur_local_pose.position.x, 2) + pow(self.ur_local_pose.position.y, 2))
             angle_mir_ur = math.atan2(self.ur_local_pose.position.y, self.ur_local_pose.position.x)
             #vel_tcp = self.target_vel_mir.twist.linear.x + self.target_vel_mir.twist.angular.z * dist_mir_ur
-            vel_tcp = self.mir_trajectorie[0][index] + self.mir_trajectorie[0][index] * dist_mir_ur
+            vel_tcp = self.mir_trajectorie[0][index] + self.mir_trajectorie[2][index] * dist_mir_ur
             vel_tcp_x = vel_tcp * math.cos(angle_mir_ur)
             vel_tcp_y = vel_tcp * math.sin(angle_mir_ur)
             
