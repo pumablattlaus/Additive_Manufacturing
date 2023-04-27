@@ -149,11 +149,7 @@ class Control_ur():
             mir_vel_global = self.compute_mir_vel_global(self.mir_cmd_vel, mir_angle)
             
             # compute induced tcp velocity of the UR by the MIR
-            ur_target_pose_global.position.x = self.ur_path_array[1][0]
-            ur_target_pose_global.position.y = self.ur_path_array[1][1]
-            mir_target_pose_global.position.x = self.mir_path_array[1][0]
-            mir_target_pose_global.position.y = self.mir_path_array[1][1]
-            induced_tcp_velocity_global = self.compute_mir_induced_tcp_velocity(ur_target_pose_global, mir_target_pose_global, mir_vel_global )
+            induced_tcp_velocity_global = self.compute_mir_induced_tcp_velocity(self.ur_pose, self.mir_pose, self.mir_ur_transform, mir_vel_global )
             
             # compute the ur_path in global frame
             direction = math.atan2(self.ur_path_array[self.path_index+1][1] - self.ur_path_array[self.path_index][1], self.ur_path_array[self.path_index+1][0] - self.ur_path_array[self.path_index][0]) 
@@ -242,10 +238,25 @@ class Control_ur():
         print("mir_vel_global: ", mir_vel_global)
         return mir_vel_global
             
-    def compute_mir_induced_tcp_velocity(self, ur_target_pose_global = Pose(), mir_target_pose_global = Pose(),         mir_vel_global = Twist()):
+
+    def compute_mir_induced_tcp_velocity(self, ur_pose = Pose(), mir_pose = Pose(), mir_ur_transform = Transform(),         mir_vel_global = Twist()):
+        # first: transform ur_pose to mir frame
+        ur_pose_mir_frame = Pose()
+        ur_pose_mir_frame.position.x = ur_pose.position.x - mir_ur_transform.translation.x
+        ur_pose_mir_frame.position.y = ur_pose.position.y - mir_ur_transform.translation.y
+
+        # second: compute the distance between the ur_pose and the mir
+        distance = math.sqrt(ur_pose_mir_frame.position.x**2 + ur_pose_mir_frame.position.y**2)
+
+        # third: compute the angle between the ur_pose and the mir
+        angle_ur_pose = math.atan2(ur_pose_mir_frame.position.y, ur_pose_mir_frame.position.x)
+        angle_mir = transformations.euler_from_quaternion([mir_pose.orientation.x, mir_pose.orientation.y, mir_pose.orientation.z, mir_pose.orientation.w])[2]
+
+        # fourth: compute induced velocity
         induced_tcp_velocity_global = Twist()
-        induced_tcp_velocity_global.linear.x = mir_vel_global.linear.x #- mir_vel_global.angular.z * (ur_target_pose_global.position.y - mir_target_pose_global.position.y)
-        induced_tcp_velocity_global.linear.y = mir_vel_global.linear.y #+ mir_vel_global.angular.z * (ur_target_pose_global.position.x - mir_target_pose_global.position.x)
+        induced_tcp_velocity_global.linear.x = mir_vel_global.linear.x - mir_vel_global.angular.z * distance * math.sin(angle_mir + angle_ur_pose)
+        induced_tcp_velocity_global.linear.y = mir_vel_global.linear.y + mir_vel_global.angular.z * distance * math.cos(angle_mir + angle_ur_pose)
+
         return induced_tcp_velocity_global
         
             
