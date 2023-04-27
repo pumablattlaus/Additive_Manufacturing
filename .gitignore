@@ -4,3 +4,13 @@ match_amc/scripts/path_files/__pycache__/circle_urx.cpython-38.pyc
 match_amc/scripts/path_files/__pycache__/circle_ury.cpython-38.pyc
 match_amc/scripts/path_files/__pycache__/circle_urz.cpython-38.pyc
 match_amc/scripts/__pycache__/cartesian_controller.cpython-38.pyc
+match_amc/scripts/__pycache__/custom_path.cpython-38.pyc
+match_amc/scripts/__pycache__/inverse_kinematics.cpython-38.pyc
+match_amc/scripts/path_files/__pycache__/MIR_X.cpython-38.pyc
+match_amc/scripts/path_files/__pycache__/MIR_Y.cpython-38.pyc
+match_amc/scripts/path_files/__pycache__/MIR_Z.cpython-38.pyc
+match_amc/scripts/path_files/__pycache__/Wall_X.cpython-38.pyc
+match_amc/scripts/path_files/__pycache__/Wall_Y.cpython-38.pyc
+match_amc/scripts/path_files/__pycache__/Wall_Z.cpython-38.pyc
+particle_spawner/models/particle_sphere_fluid/model.sdf
+particle_spawner/models/particle_sphere_solid/model.sdf
