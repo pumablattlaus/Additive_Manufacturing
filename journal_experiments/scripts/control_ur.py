@@ -159,17 +159,14 @@ class Control_ur():
             
             # compute the difference between the target tcp velocity and the induced tcp velocity in global frame
             ur_tcp_target_velocity_global = Twist()
+            ur_tcp_target_velocity_global.linear.x = ur_path_velociy_global.linear.x - induced_tcp_velocity_global.linear.x
+            ur_tcp_target_velocity_global.linear.y = ur_path_velociy_global.linear.y - induced_tcp_velocity_global.linear.y
             
             # transform global tcp velocity to local tcp velocity
             ur_tcp_target_velocity_local = Twist()
             ur_tcp_target_velocity_local.linear.x = ur_tcp_target_velocity_global.linear.x * math.cos(mir_angle) - ur_tcp_target_velocity_global.linear.y * math.sin(mir_angle)
             ur_tcp_target_velocity_local.linear.y = ur_tcp_target_velocity_global.linear.x * math.sin(mir_angle) + ur_tcp_target_velocity_global.linear.y * math.cos(mir_angle)
-                        
-            # compute difference between the target tcp velocity and the induced tcp velocity
-            ur_tcp_target_velocity = Twist()
-            ur_tcp_target_velocity.linear.x = ur_tcp_target_velocity_local.linear.x #+ ur_induced_tcp_velocity.linear.x
-            ur_tcp_target_velocity.linear.y = ur_tcp_target_velocity_local.linear.y #+ ur_induced_tcp_velocity.linear.y
-                        
+                                                
             # compute the control law
             ur_twist_command = Twist()
             ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x - self.ur_pose.position.x)
@@ -177,8 +174,9 @@ class Control_ur():
             ur_twist_command.linear.z = self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)
             
             # add feed forward term
-            ur_twist_command.linear.x = ur_twist_command.linear.x #- ur_tcp_target_velocity.linear.x
-            ur_twist_command.linear.y = ur_twist_command.linear.y #- ur_tcp_target_velocity.linear.y
+            ur_twist_command.linear.x = -ur_tcp_target_velocity_local.linear.x #ur_twist_command.linear.x #- ur_tcp_target_velocity.linear.x
+            ur_twist_command.linear.y = -ur_tcp_target_velocity_local.linear.y
+            #ur_twist_command.linear.y #- ur_tcp_target_velocity.linear.y
             
             # compute path speed
             path_speed = self.compute_path_speed_and_distance(ur_twist_command)
