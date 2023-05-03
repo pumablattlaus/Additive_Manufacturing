@@ -13,7 +13,7 @@ from std_msgs.msg import Int32
 class Control_mir_node():
 
     def __init__(self):
-        self.external_control = rospy.get_param("~external_control", False)
+        self.external_control = rospy.get_param("~external_control", True)
         self.path_array = rospy.get_param("~path_array", [])
         self.relative_positions_x = rospy.get_param("~relative_positions_x", [0])
         self.relative_positions_y = rospy.get_param("~relative_positions_y", [0])
@@ -25,7 +25,7 @@ class Control_mir_node():
         self.Kx = rospy.get_param("~Kx", 0.5)
         self.Ky = rospy.get_param("~Ky", 1.0)
         self.Kphi = rospy.get_param("~Kphi", 0.4)
-        self.KP_vel = 0.2
+        self.KP_vel = 0.1
         self.KP_omega = 1.0
         self.target_vel_lin = 0.0
         self.safety_margin = 2.0
@@ -103,10 +103,10 @@ class Control_mir_node():
                 if distances[i] <= 0.0:
                     rospy.logerr("distance to next point is negative")
                     distances[i] = 0.000001
-                            
+            
             # compute target velocity
             for i in range(len(self.robot_names)):
-                target_vels[i] = self.target_vel_lin #+ self.KP_vel * (distances[i] - distances_old[i]) / (rospy.Time.now() - timestamp_old).to_sec()
+                target_vels[i] = self.target_vel_lin #+ self.KP_vel + distances[i]  #+ self.KP_vel * (distances[i] - distances_old[i]) / (rospy.Time.now() - timestamp_old).to_sec()
 
             # limit target velocity
             vel_scaling_factor = 1.0
@@ -356,6 +356,7 @@ class Control_mir_node():
         
     def path_index_callback(self, msg):
         self.path_index = msg.data
+        rospy.loginfo("path index: " + str(self.path_index))
 
 
 if __name__ == "__main__":

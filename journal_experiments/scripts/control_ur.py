@@ -12,16 +12,16 @@ from copy import deepcopy
 class Control_ur():
     
     def config(self):
-        self.Kpx = -0.05
-        self.Kpy = 0.05
+        self.Kpx = -0.4
+        self.Kpy = -0.4
         self.Kpz = 0.0
+        self.Kp_mir = 0.1  
         self.Kpffx = 0.0  # feed-forward gain
         self.kpffy = 0.0
-        self.ur_target_tolerance = 0.02
-        self.ur_acceleration_limit = 0.015
+        self.ur_acceleration_limit = 1.0
         self.ur_jerk_limit = 0.3
-        self.ur_velocity_limit = 0.1
-        self.ur_target_velocity = 0.03
+        self.ur_velocity_limit = 0.15
+        self.ur_target_velocity = 0.1
         self.path_distance_between_points = 0.01
         pass
     
@@ -67,6 +67,9 @@ class Control_ur():
         self.ur_path_array = rospy.get_param("~ur_path_array")
         self.mir_path_array = rospy.get_param("~mir_path_array")
         
+        print("lengt of ur path array: ", len(self.ur_path_array))
+        print("lengt of mir path array: ", len(self.mir_path_array))
+        
         # get length factor
         self.length_factor = rospy.get_param("~length_factor")
         
@@ -79,7 +82,7 @@ class Control_ur():
         
         # start moving the mir
         self.mir_target_velocity = Twist()
-        self.mir_target_velocity.linear.x = self.ur_target_velocity * self.length_factor
+        self.mir_target_velocity.linear.x = self.ur_target_velocity * self.length_factor * 0.80
         self.mir_target_velocity_publisher.publish(self.mir_target_velocity)
         
         # wait for the subscriber to receive the first pose message
@@ -100,29 +103,26 @@ class Control_ur():
         self.time_old = rospy.Time.now()
         rate = rospy.Rate(100)
         while not rospy.is_shutdown():     
-            # increase path index periodically based on the target velocity
-            time_per_point = self.path_distance_between_points / self.ur_target_velocity
-            if abs(rospy.Time.now() - self.path_index_timestamp) > rospy.Duration(time_per_point):
-                self.path_index += 1
-                path_index_msg = Int32()
-                path_index_msg.data = self.path_index
-                self.path_index_publisher.publish(path_index_msg)
-                self.path_index_timestamp = rospy.Time.now()  
-                   
             # get target pose from path
             ur_target_pose_global = Pose()
             ur_target_pose_global.position.x = self.ur_path_array[self.path_index][0]
             ur_target_pose_global.position.y = self.ur_path_array[self.path_index][1]
             ur_target_pose_global.position.z = self.ur_path_array[self.path_index][2]
             ur_target_pose_global.orientation.w = 1.0
+            
+            # broadcast target pose
+            self.ur_target_pose_broadcaster.sendTransform((ur_target_pose_global.position.x, ur_target_pose_global.position.y, ur_target_pose_global.position.z), (ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w), rospy.Time.now(), "ur_global_target_pose", "map")
                         
             mir_target_pose_global = Pose()
             mir_target_pose_global.position.x = self.mir_path_array[self.path_index][0]
             mir_target_pose_global.position.y = self.mir_path_array[self.path_index][1]
-                        
+            
+            # # broadcast mir target pose
+            self.ur_target_pose_broadcaster.sendTransform((mir_target_pose_global.position.x, mir_target_pose_global.position.y, 0.0), (0.0, 0.0, 0.0, 1.0), rospy.Time.now(), "mir_global_target_pose", "map")
+            
             # compute ur target pose in base_link frame
-            x = ur_target_pose_global.position.x - self.mir_path_array[self.path_index][0]
-            y = ur_target_pose_global.position.y - self.mir_path_array[self.path_index][1]
+            x = ur_target_pose_global.position.x - self.mir_pose.position.x
+            y = ur_target_pose_global.position.y - self.mir_pose.position.y
             #mir_angle = self.mir_path_array[self.path_index][2]
             mir_angle = transformations.euler_from_quaternion([self.mir_pose.orientation.x, self.mir_pose.orientation.y, self.mir_pose.orientation.z, self.mir_pose.orientation.w])[2]
 
@@ -130,6 +130,9 @@ class Control_ur():
             ur_target_pose_local.position.x = x * math.cos(mir_angle) + y * math.sin(mir_angle) 
             ur_target_pose_local.position.y = -x * math.sin(mir_angle) + y * math.cos(mir_angle)
             ur_target_pose_local.position.z = ur_target_pose_global.position.z - self.mir_ur_transform.translation.z
+            
+            # broadcast target pose
+            self.ur_target_pose_broadcaster.sendTransform((ur_target_pose_local.position.x, ur_target_pose_local.position.y, ur_target_pose_local.position.z), (ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w), rospy.Time.now(), "ur_local_target_pose", "mur620c/mir/base_link")
             
             
             # UR is mounted backwards, so we need to invert the x-axis and y-axis
@@ -166,20 +169,25 @@ class Control_ur():
             ur_tcp_target_velocity_local = Twist()
             ur_tcp_target_velocity_local.linear.x = ur_tcp_target_velocity_global.linear.x * math.cos(mir_angle) - ur_tcp_target_velocity_global.linear.y * math.sin(mir_angle)
             ur_tcp_target_velocity_local.linear.y = ur_tcp_target_velocity_global.linear.x * math.sin(mir_angle) + ur_tcp_target_velocity_global.linear.y * math.cos(mir_angle)
-                                                
+            
+            
+            # print(ur_target_pose_base)
+            # print("ur_pose", self.ur_pose)
+            
             # compute the control law
             ur_twist_command = Twist()
-            ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x - self.ur_pose.position.x)
-            ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y - self.ur_pose.position.y)
+            ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x)
+            ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y)
             ur_twist_command.linear.z = self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)
             
+            print("ur_twist_command", ur_twist_command)
+            
             # add feed forward term
-            ur_twist_command.linear.x = -ur_tcp_target_velocity_local.linear.x #ur_twist_command.linear.x #- ur_tcp_target_velocity.linear.x
-            ur_twist_command.linear.y = -ur_tcp_target_velocity_local.linear.y
-            #ur_twist_command.linear.y #- ur_tcp_target_velocity.linear.y
+            # ur_twist_command.linear.x = ur_twist_command.linear.x #- ur_tcp_target_velocity.linear.x
+            # ur_twist_command.linear.y = ur_twist_command.linear.y #- ur_tcp_target_velocity.linear.y
             
             # compute path speed
-            path_speed = self.compute_path_speed_and_distance(ur_twist_command)
+            path_speed = self.compute_path_speed_and_distance(ur_path_velociy_global)
             
             # check if next path point is reached
             if self.path_distance + path_speed > self.path_lengths[self.path_index]:
@@ -198,10 +206,8 @@ class Control_ur():
                 self.integrated_ur_target_pose.position.y = self.ur_path_array[self.path_index][1]
                 self.integrated_ur_target_pose.orientation.w = 1.0
             
-            # compute time difference
-            now = rospy.Time.now()
-            dt = (now - self.time_old).to_sec()
-            self.time_old = now
+            # control mir velocity
+            self.control_mir_velocity(mir_target_pose_global)
             
             # update target pose based on target velocity (as a check)
             # self.integrated_ur_target_pose.position.x += ur_twist_command.linear.x * rate.sleep_dur.to_sec()
@@ -227,13 +233,10 @@ class Control_ur():
             rate.sleep()
            
     def compute_mir_vel_global(self, mir_vel_local = Twist(),mir_angle = 0.0):
-        print("mir_angle: ", mir_angle)
-        print("mir_vel_local: ", mir_vel_local)
         mir_vel_global = Twist()
         mir_vel_global.linear.x = mir_vel_local.linear.x * math.cos(mir_angle) - mir_vel_local.linear.y * math.sin(mir_angle)
         mir_vel_global.linear.y = mir_vel_local.linear.x * math.sin(mir_angle) + mir_vel_local.linear.y * math.cos(mir_angle)
         mir_vel_global.angular.z = mir_vel_local.angular.z
-        print("mir_vel_global: ", mir_vel_global)
         return mir_vel_global
             
 
@@ -262,7 +265,7 @@ class Control_ur():
     def compute_path_speed_and_distance(self,ur_command):
         now = rospy.Time.now()
         dt = (now - self.time_old).to_sec()
-        path_speed = math.sqrt(ur_command.linear.x**2 + ur_command.linear.y**2 + ur_command.linear.z**2) 
+        path_speed = math.sqrt(ur_command.linear.x**2 + ur_command.linear.y**2) 
         self.path_distance = self.path_distance + path_speed * dt
         self.time_old = now
         return path_speed * dt
@@ -285,6 +288,10 @@ class Control_ur():
     def ur_pose_callback(self, data = PoseStamped()):
         self.ur_pose = data.pose
     
+    def control_mir_velocity(self,target_pose = Pose()):
+        error = math.sqrt((target_pose.position.x - self.mir_pose.position.x)**2 + (target_pose.position.y - self.mir_pose.position.y)**2)
+        self.mir_target_velocity.linear.x = self.ur_target_velocity * self.length_factor * 0.80 + self.Kp_mir * error
+        self.mir_target_velocity_publisher.publish(self.mir_target_velocity)
     
     def compute_path_lengths(self):
         # compute path lengths

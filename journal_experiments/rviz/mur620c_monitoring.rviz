@@ -249,6 +249,8 @@ Visualization Manager:
           Value: false
         base:
           Value: false
+        integrated_target_point:
+          Value: true
         map:
           Value: false
         mocap:
@@ -366,7 +368,7 @@ Visualization Manager:
         mur620c/target_point:
           Value: false
         target_point:
-          Value: false
+          Value: true
         target_pose_0:
           Value: false
         target_pose_controll0:
@@ -387,6 +389,8 @@ Visualization Manager:
             {}
         map:
           actual_pose_0:
+            {}
+          integrated_target_point:
             {}
           mur620c/mir/odom:
             mur620c/mir/base_footprint:
@@ -413,18 +417,18 @@ Visualization Manager:
                       {}
                   mur620c/mir/camera_floor_left_depth_optical_frame:
                     {}
-                  mur620c/mir/camera_infra1_frame:
-                    mur620c/mir/camera_infra1_optical_frame:
-                      {}
-                  mur620c/mir/camera_infra2_frame:
-                    mur620c/mir/camera_infra2_optical_frame:
-                      {}
                 mur620c/mir/camera_floor_right_link:
                   mur620c/mir/camera_floor_right_color_frame:
                     mur620c/mir/camera_floor_right_color_optical_frame:
                       {}
                   mur620c/mir/camera_floor_right_depth_optical_frame:
                     {}
+                  mur620c/mir/camera_infra1_frame:
+                    mur620c/mir/camera_infra1_optical_frame:
+                      {}
+                  mur620c/mir/camera_infra2_frame:
+                    mur620c/mir/camera_infra2_optical_frame:
+                      {}
                 mur620c/mir/fl_caster_rotation_link:
                   mur620c/mir/fl_caster_wheel_link:
                     {}
@@ -623,7 +627,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 4.354444980621338
+      Distance: 7.40278959274292
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -631,17 +635,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 47.99599838256836
-        Y: 43.22735595703125
-        Z: -2.384185791015625e-07
+        X: 49.622581481933594
+        Y: 45.06621551513672
+        Z: -4.5299530029296875e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.0097968578338623
+      Pitch: 1.4747964143753052
       Target Frame: <Fixed Frame>
-      Yaw: 1.6053972244262695
+      Yaw: 1.7103971242904663
     Saved: ~
 Window Geometry:
   Displays:
