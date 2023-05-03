@@ -186,8 +186,8 @@ def launch_ros_node(node_name, package_name, node_executable, namespace="/", nod
 
 def compute_path_length(path):
     path_length = 0.0
-    for pose in path.poses:
-        path_length += math.sqrt(pose.pose.position.x**2 + pose.pose.position.y**2)
+    for i in range(len(path.poses)-1):
+        path_length += math.sqrt((path.poses[i+1].pose.position.x - path.poses[i].pose.position.x)**2 + (path.poses[i+1].pose.position.y - path.poses[i].pose.position.y)**2)
     return path_length
 
 # main
