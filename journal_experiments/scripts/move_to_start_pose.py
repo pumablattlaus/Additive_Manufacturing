@@ -84,12 +84,6 @@ class Move_to_start_pose():
             # publish the target velocity
             self.cmd_vel_pub.publish(self.target_vel)
 
-            print('current_theta: ', self.current_theta)
-            print('target_theta: ', target_theta)
-            print('theta_diff: ', theta_diff)
-
-
-
             # check if robot is aligned with the target pose
             if abs(theta_diff) < self.angle_tolerance:
                 break
@@ -107,9 +101,6 @@ class Move_to_start_pose():
 
         # set the control rate
         rate = rospy.Rate(self.control_rate)
-        
-        print('current_theta: ', self.current_theta)
-        print('target_theta: ', self.target_pose[2])
 
         while abs(self.current_theta - self.target_pose[2]) > self.angle_tolerance and not rospy.is_shutdown():
             # compute the target theta
@@ -160,10 +151,6 @@ class Move_to_start_pose():
                 
             self.target_vel.linear.x = vel_lin
             self.target_vel.angular.z = 0.0
-            
-            print("mir_pose: ", self.mir_pose.position.x, self.mir_pose.position.y)
-            print("target_pose: ", self.target_pose[0], self.target_pose[1])
-            print("linear_error: ", linear_error)
             
             self.cmd_vel_pub.publish(self.target_vel)
             

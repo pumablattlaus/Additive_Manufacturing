@@ -6,6 +6,8 @@
 <!-- run rviz and load config -->
 <node pkg="rviz" type="rviz" name="rviz" args="-d $(find journal_experiments)/rviz/mur620c_monitoring.rviz" />
 
+<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" />
+
 <group ns= "/mur620c/UR10_r/"> 
     <node name="rqt_joint_trajectory_controller" pkg="rqt_joint_trajectory_controller" type="rqt_joint_trajectory_controller" output="screen" respawn="false" >
         <!-- <param name="/robot_description" value="/dev/ttyUSB0" /> --> -->

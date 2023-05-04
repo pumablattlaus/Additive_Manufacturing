@@ -13,18 +13,17 @@ from copy import deepcopy
 class Control_ur():
     
     def config(self):
-        self.Kpx = -0.4
-        self.Kpy = -0.4
-        self.Kpz = 0.0
-        self.Kp_mir = 0.1  
+        # self.Kpx = -0.4
+        # self.Kpy = -0.4
+        # self.Kpz = 0.0
+        # self.Kp_mir = 0.1  
         self.Kpffx = 0.0  # feed-forward gain
         self.kpffy = 0.0
-        self.ur_acceleration_limit = 1.0
-        self.ur_jerk_limit = 0.3
-        self.ur_velocity_limit = 0.15
-        self.ur_target_velocity = 0.1
+        # self.ur_acceleration_limit = 1.0
+        # self.ur_jerk_limit = 0.3
+        # self.ur_velocity_limit = 0.15
+        # self.ur_target_velocity = 0.1
         self.path_distance_between_points = 0.01
-        pass
     
     
     def __init__(self):
@@ -304,4 +303,4 @@ class Control_ur():
     
     
 if __name__ == "__main__":
-    Control_ur() #.main()
+    Control_ur().main()
