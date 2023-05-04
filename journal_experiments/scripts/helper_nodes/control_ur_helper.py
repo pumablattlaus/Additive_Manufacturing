@@ -52,6 +52,8 @@ class Control_ur_helper():
         self.base_node.Kpy = config["Kpy"]
         self.base_node.Kpz = config["Kpz"]
         self.base_node.Kp_mir = config["Kp_mir"]
+        self.base_node.Kp_ffx = config["Kp_ffx"]
+        self.base_node.Kp_ffy = config["Kp_ffy"]
         return config
     
     def setup_ddynamic_reconfigure(self):
@@ -61,11 +63,13 @@ class Control_ur_helper():
         # Add variables (name, description, default value, min, max, edit_method)
         ddynrec.add_variable("ur_target_velocity", "float/double variable", 0.05, 0, 0.3)
         ddynrec.add_variable("ur_velocity_limit", "float/double variable", 0.15, 0, 0.3)
-        ddynrec.add_variable("ur_acceleration_limit", "float/double variable", 0.16, 0, 2.0)
-        ddynrec.add_variable("Kpx", "float/double variable", -0.48, -1.0, 1.0)
-        ddynrec.add_variable("Kpy", "float/double variable", -0.48, -1.0, 1.0)
-        ddynrec.add_variable("Kpz", "float/double variable", 0.0, -1.0, 1.0)
+        ddynrec.add_variable("ur_acceleration_limit", "float/double variable", 0.6, 0, 2.0)
+        ddynrec.add_variable("Kpx", "float/double variable", -0.5, -1.0, 1.0)
+        ddynrec.add_variable("Kpy", "float/double variable", -0.5, -1.0, 1.0)
+        ddynrec.add_variable("Kpz", "float/double variable", 0.35, -1.0, 1.0)
         ddynrec.add_variable("Kp_mir", "float/double variable", 0.1, -1.0, 1.0)
+        ddynrec.add_variable("Kp_ffx", "float/double variable", 0.0, -1.0, 1.0)
+        ddynrec.add_variable("Kp_ffy", "float/double variable", 0.0, -1.0, 1.0)
         # ddynrec.add_variable("decimal", "float/double variable", -0.4, -1.0, 1.0)
         # ddynrec.add_variable("integer", "integer variable", 0, -1, 1)
         # ddynrec.add_variable("bool", "bool variable", True)

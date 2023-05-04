@@ -17,8 +17,6 @@ class Control_ur():
         # self.Kpy = -0.4
         # self.Kpz = 0.0
         # self.Kp_mir = 0.1  
-        self.Kpffx = 0.0  # feed-forward gain
-        self.kpffy = 0.0
         # self.ur_acceleration_limit = 1.0
         # self.ur_jerk_limit = 0.3
         # self.ur_velocity_limit = 0.15
@@ -98,7 +96,7 @@ class Control_ur():
             ur_target_pose_local = Pose()
             ur_target_pose_local.position.x = x * math.cos(mir_angle) + y * math.sin(mir_angle) 
             ur_target_pose_local.position.y = -x * math.sin(mir_angle) + y * math.cos(mir_angle)
-            ur_target_pose_local.position.z = ur_target_pose_global.position.z - self.mir_ur_transform.translation.z
+            ur_target_pose_local.position.z = ur_target_pose_global.position.z 
             
             # broadcast target pose
             self.ur_target_pose_broadcaster.sendTransform((ur_target_pose_local.position.x, ur_target_pose_local.position.y, ur_target_pose_local.position.z), (ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w), rospy.Time.now(), "ur_local_target_pose", "mur620c/mir/base_link")
@@ -112,6 +110,7 @@ class Control_ur():
             ur_target_pose_base = Pose()
             ur_target_pose_base.position.x = ur_target_pose_local.position.x + self.mir_ur_transform.translation.x
             ur_target_pose_base.position.y = ur_target_pose_local.position.y + self.mir_ur_transform.translation.y
+            ur_target_pose_base.position.z = ur_target_pose_local.position.z - self.mir_ur_transform.translation.z
             ur_target_pose_base.orientation.w = 1.0
 
             # broadcast target pose
@@ -121,7 +120,7 @@ class Control_ur():
             mir_vel_global = self.compute_mir_vel_global(self.mir_cmd_vel, mir_angle)
             
             # compute induced tcp velocity of the UR by the MIR
-            induced_tcp_velocity_global = self.compute_mir_induced_tcp_velocity(self.ur_pose, self.mir_pose, self.mir_ur_transform, mir_vel_global )
+            induced_tcp_velocity_global = self.compute_mir_induced_tcp_velocity(ur_target_pose_local, self.ur_pose, self.mir_pose, self.mir_ur_transform, mir_vel_global )
             
             # compute the ur_path in global frame
             direction = math.atan2(self.ur_path_array[self.path_index+1][1] - self.ur_path_array[self.path_index][1], self.ur_path_array[self.path_index+1][0] - self.ur_path_array[self.path_index][0]) 
@@ -138,18 +137,21 @@ class Control_ur():
             ur_tcp_target_velocity_local = Twist()
             ur_tcp_target_velocity_local.linear.x = ur_tcp_target_velocity_global.linear.x * math.cos(mir_angle) - ur_tcp_target_velocity_global.linear.y * math.sin(mir_angle)
             ur_tcp_target_velocity_local.linear.y = ur_tcp_target_velocity_global.linear.x * math.sin(mir_angle) + ur_tcp_target_velocity_global.linear.y * math.cos(mir_angle)
-                        
+            
+            print("ur_tcp_target_velocity_local: ", ur_tcp_target_velocity_local)
+            
+            
             # compute the control law
             ur_twist_command = Twist()
             ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x)
             ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y)
             ur_twist_command.linear.z = self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)
             
-            print("ur_twist_command", ur_twist_command)
-            
             # add feed forward term
-            # ur_twist_command.linear.x = ur_twist_command.linear.x #- ur_tcp_target_velocity.linear.x
-            # ur_twist_command.linear.y = ur_twist_command.linear.y #- ur_tcp_target_velocity.linear.y
+            ur_twist_command.linear.x = ur_twist_command.linear.x + self.Kp_ffx * ur_tcp_target_velocity_local.linear.x
+            ur_twist_command.linear.y = ur_twist_command.linear.y + self.Kp_ffy * ur_tcp_target_velocity_local.linear.y
+            
+            print("ff", self.Kp_ffx * ur_tcp_target_velocity_local.linear.x)
             
             # compute path speed
             path_speed = self.compute_path_speed_and_distance(ur_path_velociy_global)
@@ -167,8 +169,8 @@ class Control_ur():
                 self.initial_run = False
                 # self.integrated_ur_target_pose = ur_target_pose_base
                 self.integrated_ur_target_pose = Pose()
-                self.integrated_ur_target_pose.position.x = self.ur_path_array[self.path_index][0]
-                self.integrated_ur_target_pose.position.y = self.ur_path_array[self.path_index][1]
+                self.integrated_ur_target_pose.position.x = self.mir_path_array[self.path_index][0]
+                self.integrated_ur_target_pose.position.y = self.mir_path_array[self.path_index][1]
                 self.integrated_ur_target_pose.orientation.w = 1.0
             
             # control mir velocity
@@ -178,7 +180,7 @@ class Control_ur():
             # self.integrated_ur_target_pose.position.x += ur_twist_command.linear.x * rate.sleep_dur.to_sec()
             # self.integrated_ur_target_pose.position.y += ur_twist_command.linear.y * rate.sleep_dur.to_sec()
             # self.integrated_ur_target_pose.position.z += ur_twist_command.linear.z * rate.sleep_dur.to_sec()
-            self.integrated_ur_target_pose.position.x += induced_tcp_velocity_global.linear.x * rate.sleep_dur.to_sec()
+            self.integrated_ur_target_pose.position.x += induced_tcp_velocity_global.linear.x * rate.sleep_dur.to_sec() + ur_tcp_target_velocity_local.linear.x 
             self.integrated_ur_target_pose.position.y += induced_tcp_velocity_global.linear.y * rate.sleep_dur.to_sec()
             self.integrated_ur_target_pose.position.z += induced_tcp_velocity_global.linear.z * rate.sleep_dur.to_sec()
             
@@ -205,17 +207,18 @@ class Control_ur():
         return mir_vel_global
             
 
-    def compute_mir_induced_tcp_velocity(self, ur_pose = Pose(), mir_pose = Pose(), mir_ur_transform = Transform(),         mir_vel_global = Twist()):
+    def compute_mir_induced_tcp_velocity(self, ur_target_pose_local, ur_pose = Pose(), mir_pose = Pose(), mir_ur_transform = Transform(),         mir_vel_global = Twist()):
         # first: transform ur_pose to mir frame
         ur_pose_mir_frame = Pose()
         ur_pose_mir_frame.position.x = ur_pose.position.x - mir_ur_transform.translation.x
         ur_pose_mir_frame.position.y = ur_pose.position.y - mir_ur_transform.translation.y
 
+
         # second: compute the distance between the ur_pose and the mir
-        distance = math.sqrt(ur_pose_mir_frame.position.x**2 + ur_pose_mir_frame.position.y**2)
+        distance = math.sqrt(ur_target_pose_local.position.x**2 + ur_target_pose_local.position.y**2)
 
         # third: compute the angle between the ur_pose and the mir
-        angle_ur_pose = math.atan2(ur_pose_mir_frame.position.y, ur_pose_mir_frame.position.x)
+        angle_ur_pose = -math.atan2(ur_target_pose_local.position.y, ur_target_pose_local.position.x)
         angle_mir = transformations.euler_from_quaternion([mir_pose.orientation.x, mir_pose.orientation.y, mir_pose.orientation.z, mir_pose.orientation.w])[2]
 
         # fourth: compute induced velocity
@@ -286,8 +289,10 @@ class Control_ur():
         # limit acceleration
         if abs(ur_command.linear.x - ur_command_old.linear.x) > self.ur_acceleration_limit:
             vel_scale = self.ur_acceleration_limit / abs(ur_command.linear.x - ur_command_old.linear.x)
+            print("limiting acceleration")
         if abs(ur_command.linear.y - ur_command_old.linear.y) > self.ur_acceleration_limit and abs(ur_command.linear.y - ur_command_old.linear.y) * vel_scale > self.ur_acceleration_limit:
             vel_scale = self.ur_acceleration_limit / abs(ur_command.linear.y - ur_command_old.linear.y)
+            print("limiting acceleration")
         if abs(ur_command.linear.z - ur_command_old.linear.z) > self.ur_acceleration_limit and abs(ur_command.linear.z - ur_command_old.linear.z) * vel_scale > self.ur_acceleration_limit:
             vel_scale = self.ur_acceleration_limit / abs(ur_command.linear.z - ur_command_old.linear.z)
             
