@@ -2,6 +2,7 @@
 
 import rospy
 import tf
+from helper_nodes.control_ur_helper import Control_ur_helper
 from tf import transformations
 from std_msgs.msg import Int32
 from nav_msgs.msg import Path
@@ -28,35 +29,7 @@ class Control_ur():
     
     def __init__(self):
         rospy.init_node("control_ur_node")
-        
-        
-        self.ur_command_topic = rospy.get_param("~ur_command_topic", "/mur620c/UR10_r/twist_controller/command_safe")
-        self.ur_pose_topic = rospy.get_param("~ur_pose_topic", "/mur620c/UR10_r/ur_calibrated_pose")
-        self.mir_pose_topic = rospy.get_param("~mir_pose_topic", "/mur620c/mir/robot_pose")
-        self.ur_base_link_frame_id = rospy.get_param("~ur_base_link_frame_id", "mur620c/UR10_r/base_link")
-        self.mir_cmd_vel_topic = rospy.get_param("~mir_cmd_vel_topic", "/mur620c/mir/cmd_vel")
-        self.tf_prefix = rospy.get_param("~tf_prefix", "mur620c/")
-        self.ur_twist_publisher = rospy.Publisher(self.ur_command_topic, Twist, queue_size=1)
-        self.ur_target_pose_broadcaster = tf.TransformBroadcaster()
-        self.initial_run = True
-        rospy.Subscriber(self.ur_pose_topic, PoseStamped, self.ur_pose_callback)
-        rospy.Subscriber(self.mir_cmd_vel_topic, Twist, self.mir_cmd_vel_callback)
-        rospy.Subscriber(self.mir_pose_topic, Pose, self.mir_pose_callback)
-        
-        
-        self.ur_target_pose_broadcaster = tf.TransformBroadcaster()
-        #rospy.Subscriber("/path_index", Int32, self.path_index_callback)
-        self.path_index_publisher = rospy.Publisher('/path_index', Int32, queue_size=1)
-        self.mir_target_velocity_publisher = rospy.Publisher('/mir_target_velocity', Twist, queue_size=1)
-        self.ur_command = Twist()
-        self.ur_command_old = Twist()
-        self.path_index = 1
-        self.path_speed = 0.0
-        self.path_distance = 0.0
-        
-        self.path_index_timestamp = rospy.Time.now()
-        
-        
+        Control_ur_helper(self)    
         self.config()
         
     
@@ -66,10 +39,7 @@ class Control_ur():
         # get path from parameter server
         self.ur_path_array = rospy.get_param("~ur_path_array")
         self.mir_path_array = rospy.get_param("~mir_path_array")
-        
-        print("lengt of ur path array: ", len(self.ur_path_array))
-        print("lengt of mir path array: ", len(self.mir_path_array))
-        
+                
         # get length factor
         self.length_factor = rospy.get_param("~length_factor")
         
@@ -169,11 +139,7 @@ class Control_ur():
             ur_tcp_target_velocity_local = Twist()
             ur_tcp_target_velocity_local.linear.x = ur_tcp_target_velocity_global.linear.x * math.cos(mir_angle) - ur_tcp_target_velocity_global.linear.y * math.sin(mir_angle)
             ur_tcp_target_velocity_local.linear.y = ur_tcp_target_velocity_global.linear.x * math.sin(mir_angle) + ur_tcp_target_velocity_global.linear.y * math.cos(mir_angle)
-            
-            
-            # print(ur_target_pose_base)
-            # print("ur_pose", self.ur_pose)
-            
+                        
             # compute the control law
             ur_twist_command = Twist()
             ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x)
@@ -285,8 +251,7 @@ class Control_ur():
         self.mir_ur_transform.rotation.z = q[2]
         self.mir_ur_transform.rotation.w = q[3]
     
-    def ur_pose_callback(self, data = PoseStamped()):
-        self.ur_pose = data.pose
+    
     
     def control_mir_velocity(self,target_pose = Pose()):
         error = math.sqrt((target_pose.position.x - self.mir_pose.position.x)**2 + (target_pose.position.y - self.mir_pose.position.y)**2)
@@ -300,12 +265,7 @@ class Control_ur():
         for i in range(len(self.ur_path_array)-1):
             self.path_lengths.append(self.path_lengths[i] + math.sqrt((self.ur_path_array[i][0] - self.ur_path_array[i+1][0])**2 + (self.ur_path_array[i][1] - self.ur_path_array[i+1][1])**2 + (self.ur_path_array[i][2] - self.ur_path_array[i+1][2])**2))
             
-            
-    def mir_cmd_vel_callback(self, msg = Twist()):
-        self.mir_cmd_vel = msg
-        
-    def mir_pose_callback(self, msg = Pose()):
-        self.mir_pose = msg
+    
     
     def limit_velocity(self, ur_command, ur_command_old):
         vel_scale = 1.0
@@ -344,4 +304,4 @@ class Control_ur():
     
     
 if __name__ == "__main__":
-    Control_ur().main()
+    Control_ur() #.main()
