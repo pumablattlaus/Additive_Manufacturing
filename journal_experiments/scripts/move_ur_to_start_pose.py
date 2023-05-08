@@ -12,8 +12,8 @@ class MoveURToStartPose():
     def config(self):
         self.ur_velocity_limit = rospy.get_param("~ur_velocity_limit", 0.06)
         self.ur_acceleration_limit = rospy.get_param("~ur_acceleration_limit", 0.02)
-        self.Kpx = rospy.get_param("~Kpx", 0.1)
-        self.Kpy = rospy.get_param("~Kpy", 0.1)
+        self.Kpx = rospy.get_param("~Kpx", 0.3)
+        self.Kpy = rospy.get_param("~Kpy", 0.3)
         self.Kpz = rospy.get_param("~Kpz", 0.1)
         self.ur_target_tolerance = rospy.get_param("~ur_target_tolerance", 0.01)
         pass

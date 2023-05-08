@@ -3,13 +3,13 @@ import rospy
 from geometry_msgs.msg import PoseStamped, Pose, Twist
 import tf
 from ddynamic_reconfigure_python.ddynamic_reconfigure import DDynamicReconfigure
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, Int16
 
 class Control_ur_helper():
 
     def __init__(self,base_node):
         self.base_node = base_node
-        self.setup_ddynamic_reconfigure()
+        
 
         self.base_node.ur_command_topic = rospy.get_param("~ur_command_topic", "/mur620c/UR10_r/twist_controller/command_safe")
         self.base_node.ur_pose_topic = rospy.get_param("~ur_pose_topic", "/mur620c/UR10_r/ur_calibrated_pose")
@@ -28,9 +28,13 @@ class Control_ur_helper():
         self.base_node.path_index = 1
         self.base_node.path_speed = 0.0
         self.base_node.path_distance = 0.0
+        self.servo_position = 0
+        self.servo_position_old = 0
+        self.servo_position_publisher = rospy.Publisher("/servo_target_position", Int16, queue_size=1)
         
         self.base_node.path_index_timestamp = rospy.Time.now()
 
+        self.setup_ddynamic_reconfigure()
         rospy.Subscriber(self.base_node.ur_pose_topic, PoseStamped, self.ur_pose_callback)
         rospy.Subscriber(self.base_node.mir_cmd_vel_topic, Twist, self.mir_cmd_vel_callback)
         rospy.Subscriber(self.base_node.mir_pose_topic, Pose, self.mir_pose_callback)
@@ -54,6 +58,11 @@ class Control_ur_helper():
         self.base_node.Kp_mir = config["Kp_mir"]
         self.base_node.Kp_ffx = config["Kp_ffx"]
         self.base_node.Kp_ffy = config["Kp_ffy"]
+        self.servo_position = config["servo_position"]
+        if self.servo_position != self.servo_position_old:
+            position_msg = Int16()
+            position_msg.data = self.servo_position
+            self.servo_position_publisher.publish(position_msg)
         return config
     
     def setup_ddynamic_reconfigure(self):
@@ -61,15 +70,16 @@ class Control_ur_helper():
         ddynrec = DDynamicReconfigure("example_dyn_rec")
 
         # Add variables (name, description, default value, min, max, edit_method)
-        ddynrec.add_variable("ur_target_velocity", "float/double variable", 0.05, 0, 0.3)
+        ddynrec.add_variable("ur_target_velocity", "float/double variable", 0.06, 0, 0.3)
         ddynrec.add_variable("ur_velocity_limit", "float/double variable", 0.15, 0, 0.3)
-        ddynrec.add_variable("ur_acceleration_limit", "float/double variable", 0.6, 0, 2.0)
-        ddynrec.add_variable("Kpx", "float/double variable", -0.7, -1.0, 1.0)
-        ddynrec.add_variable("Kpy", "float/double variable", -0.7, -1.0, 1.0)
+        ddynrec.add_variable("ur_acceleration_limit", "float/double variable", 0.9, 0, 2.0)
+        ddynrec.add_variable("Kpx", "float/double variable", -0.3, -1.0, 1.0)
+        ddynrec.add_variable("Kpy", "float/double variable", -0.3, -1.0, 1.0)
         ddynrec.add_variable("Kpz", "float/double variable", 0.35, -1.0, 1.0)
         ddynrec.add_variable("Kp_mir", "float/double variable", 0.1, -1.0, 1.0)
         ddynrec.add_variable("Kp_ffx", "float/double variable", 0.0, -1.0, 1.0)
         ddynrec.add_variable("Kp_ffy", "float/double variable", 0.0, -1.0, 1.0)
+        ddynrec.add_variable("servo_position", "integer variable", self.servo_position, 0, 1200)
         # ddynrec.add_variable("decimal", "float/double variable", -0.4, -1.0, 1.0)
         # ddynrec.add_variable("integer", "integer variable", 0, -1, 1)
         # ddynrec.add_variable("bool", "bool variable", True)

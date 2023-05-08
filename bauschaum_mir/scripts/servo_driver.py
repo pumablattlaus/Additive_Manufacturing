@@ -16,7 +16,7 @@ class servo_driver():
         print(output)
         ###
         print("Starting servo driver")
-        
+        self.last_command = Int16()
         rospy.init_node("servo_driver_node")
         
         service_topic = "/dynamixel_workbench/dynamixel_command"
@@ -28,7 +28,7 @@ class servo_driver():
         
         rospy.Subscriber("/servo_target_position", Int16, self.servo_cb)
         
-        self.safety_loop()
+        #self.safety_loop()
         rospy.spin()
              
     def servo_cb(self,position_command):

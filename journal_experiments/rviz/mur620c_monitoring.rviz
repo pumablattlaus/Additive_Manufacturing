@@ -253,6 +253,8 @@ Visualization Manager:
           Value: true
         map:
           Value: false
+        mir_global_target_pose:
+          Value: true
         mocap:
           Value: false
         mur620b/UR10_r/base_link:
@@ -375,6 +377,10 @@ Visualization Manager:
           Value: false
         tool0_controller:
           Value: false
+        ur_global_target_pose:
+          Value: true
+        ur_local_target_pose:
+          Value: true
         ur_target_pose:
           Value: false
       Marker Alpha: 1
@@ -391,6 +397,8 @@ Visualization Manager:
           actual_pose_0:
             {}
           integrated_target_point:
+            {}
+          mir_global_target_pose:
             {}
           mur620c/mir/odom:
             mur620c/mir/base_footprint:
@@ -411,6 +419,12 @@ Visualization Manager:
                     mur620c/mir/camera_depth_frame:
                       mur620c/mir/camera_depth_optical_frame:
                         {}
+                    mur620c/mir/camera_infra1_frame:
+                      mur620c/mir/camera_infra1_optical_frame:
+                        {}
+                    mur620c/mir/camera_infra2_frame:
+                      mur620c/mir/camera_infra2_optical_frame:
+                        {}
                 mur620c/mir/camera_floor_left_link:
                   mur620c/mir/camera_floor_left_color_frame:
                     mur620c/mir/camera_floor_left_color_optical_frame:
@@ -423,12 +437,6 @@ Visualization Manager:
                       {}
                   mur620c/mir/camera_floor_right_depth_optical_frame:
                     {}
-                  mur620c/mir/camera_infra1_frame:
-                    mur620c/mir/camera_infra1_optical_frame:
-                      {}
-                  mur620c/mir/camera_infra2_frame:
-                    mur620c/mir/camera_infra2_optical_frame:
-                      {}
                 mur620c/mir/fl_caster_rotation_link:
                   mur620c/mir/fl_caster_wheel_link:
                     {}
@@ -472,7 +480,11 @@ Visualization Manager:
                   {}
                 mur620c/mir/us_2_frame:
                   {}
+                ur_local_target_pose:
+                  {}
           target_pose_controll0:
+            {}
+          ur_global_target_pose:
             {}
         mocap:
           mur620c/target_point:
@@ -627,7 +639,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 7.40278959274292
+      Distance: 4.918919563293457
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -635,17 +647,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 49.622581481933594
-        Y: 45.06621551513672
-        Z: -4.5299530029296875e-06
+        X: 51.25032043457031
+        Y: 42.81856155395508
+        Z: -5.03919454786228e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4747964143753052
+      Pitch: 0.2597973346710205
       Target Frame: <Fixed Frame>
-      Yaw: 1.7103971242904663
+      Yaw: 2.850398540496826
     Saved: ~
 Window Geometry:
   Displays:
