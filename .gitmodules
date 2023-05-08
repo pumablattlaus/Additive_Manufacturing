@@ -1,3 +1,9 @@
 [submodule "match_amc/scripts/match_lib"]
 	path = match_amc/scripts/match_lib
 	url = https://github.com/pumablattlaus/match_lib.git
+[submodule "dynamixel-workbench"]
+	path = dynamixel-workbench
+	url = https://github.com/ROBOTIS-GIT/dynamixel-workbench
+[submodule "DynamixelSDK"]
+	path = DynamixelSDK
+	url = https://github.com/ROBOTIS-GIT/DynamixelSDK

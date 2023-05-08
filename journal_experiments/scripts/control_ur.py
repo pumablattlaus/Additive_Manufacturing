@@ -125,8 +125,8 @@ class Control_ur():
             # compute the ur_path in global frame
             direction = math.atan2(self.ur_path_array[self.path_index+1][1] - self.ur_path_array[self.path_index][1], self.ur_path_array[self.path_index+1][0] - self.ur_path_array[self.path_index][0]) 
             ur_path_velociy_global = Twist()
-            ur_path_velociy_global.linear.x = self.ur_target_velocity * math.cos(direction)
-            ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(direction)
+            ur_path_velociy_global.linear.x = self.ur_target_velocity * math.cos(mir_angle)
+            ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(mir_angle)
             
             # compute the difference between the target tcp velocity and the induced tcp velocity in global frame
             ur_tcp_target_velocity_global = Twist()
@@ -137,9 +137,7 @@ class Control_ur():
             ur_tcp_target_velocity_local = Twist()
             ur_tcp_target_velocity_local.linear.x = ur_tcp_target_velocity_global.linear.x * math.cos(mir_angle) - ur_tcp_target_velocity_global.linear.y * math.sin(mir_angle)
             ur_tcp_target_velocity_local.linear.y = ur_tcp_target_velocity_global.linear.x * math.sin(mir_angle) + ur_tcp_target_velocity_global.linear.y * math.cos(mir_angle)
-            
-            print("ur_tcp_target_velocity_local: ", ur_tcp_target_velocity_local)
-            
+                        
             
             # compute the control law
             ur_twist_command = Twist()
@@ -150,9 +148,7 @@ class Control_ur():
             # add feed forward term
             ur_twist_command.linear.x = ur_twist_command.linear.x + self.Kp_ffx * ur_tcp_target_velocity_local.linear.x
             ur_twist_command.linear.y = ur_twist_command.linear.y + self.Kp_ffy * ur_tcp_target_velocity_local.linear.y
-            
-            print("ff", self.Kp_ffx * ur_tcp_target_velocity_local.linear.x)
-            
+                        
             # compute path speed
             path_speed = self.compute_path_speed_and_distance(ur_path_velociy_global)
             
