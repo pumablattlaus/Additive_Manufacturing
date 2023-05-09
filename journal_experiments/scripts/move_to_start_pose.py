@@ -18,7 +18,7 @@ class Move_to_start_pose():
         self.target_pose = rospy.get_param("~target_pose", [2,0,0])
         self.linear_vel_limit = 0.08
         self.angular_vel_limit = 0.2
-        self.linear_tolerance = 0.1
+        self.linear_tolerance = 0.15
         
         
         self.move_base_simple_goal_pub = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=1)
@@ -39,7 +39,7 @@ class Move_to_start_pose():
             
         for i in range(0,3):
             # check if the robot is already in position
-            if abs(self.target_pose[1] - self.mir_pose.position.y) < self.linear_tolerance / 4 and abs(self.target_pose[0] - self.mir_pose.position.x) < self.linear_tolerance / 4:
+            if abs(self.target_pose[1] - self.mir_pose.position.y) < self.linear_tolerance / 2 and abs(self.target_pose[0] - self.mir_pose.position.x) < self.linear_tolerance / 2:
                 break
             self.turn_to_target_pose()
             self.move_to_target_pose()

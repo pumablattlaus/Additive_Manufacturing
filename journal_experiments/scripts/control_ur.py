@@ -137,8 +137,7 @@ class Control_ur():
             ur_tcp_target_velocity_local = Twist()
             ur_tcp_target_velocity_local.linear.x = ur_tcp_target_velocity_global.linear.x * math.cos(mir_angle) - ur_tcp_target_velocity_global.linear.y * math.sin(mir_angle)
             ur_tcp_target_velocity_local.linear.y = ur_tcp_target_velocity_global.linear.x * math.sin(mir_angle) + ur_tcp_target_velocity_global.linear.y * math.cos(mir_angle)
-                        
-            
+                                    
             # compute the control law
             ur_twist_command = Twist()
             ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x)
@@ -191,7 +190,7 @@ class Control_ur():
                         
             # publish command
             self.ur_command_old = ur_command
-            self.ur_twist_publisher.publish(ur_command)
+            self.ur_twist_publisher.publish(ur_twist_command)
             
             rate.sleep()
            
