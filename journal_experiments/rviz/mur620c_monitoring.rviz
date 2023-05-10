@@ -12,6 +12,8 @@ Panels:
         - /Path1
         - /RobotModel2
         - /Path2
+        - /PointCloud21
+        - /PointCloud21/Status1
       Splitter Ratio: 0.8283433318138123
     Tree Height: 1522
   - Class: rviz/Selection
@@ -31,7 +33,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: PointCloud2
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -245,17 +247,9 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        actual_pose_0:
-          Value: false
         base:
           Value: false
-        integrated_target_point:
-          Value: true
         map:
-          Value: false
-        mir_global_target_pose:
-          Value: true
-        mocap:
           Value: false
         mur620b/UR10_r/base_link:
           Value: false
@@ -367,22 +361,14 @@ Visualization Manager:
           Value: false
         mur620c/mir/us_2_frame:
           Value: false
-        mur620c/target_point:
+        sensor_frame:
           Value: false
-        target_point:
-          Value: true
-        target_pose_0:
-          Value: false
-        target_pose_controll0:
+        sensor_optical_frame:
           Value: false
         tool0_controller:
           Value: false
-        ur_global_target_pose:
+        world:
           Value: true
-        ur_local_target_pose:
-          Value: true
-        ur_target_pose:
-          Value: false
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -394,12 +380,6 @@ Visualization Manager:
           tool0_controller:
             {}
         map:
-          actual_pose_0:
-            {}
-          integrated_target_point:
-            {}
-          mir_global_target_pose:
-            {}
           mur620c/mir/odom:
             mur620c/mir/base_footprint:
               mur620c/mir/base_link:
@@ -419,12 +399,6 @@ Visualization Manager:
                     mur620c/mir/camera_depth_frame:
                       mur620c/mir/camera_depth_optical_frame:
                         {}
-                    mur620c/mir/camera_infra1_frame:
-                      mur620c/mir/camera_infra1_optical_frame:
-                        {}
-                    mur620c/mir/camera_infra2_frame:
-                      mur620c/mir/camera_infra2_optical_frame:
-                        {}
                 mur620c/mir/camera_floor_left_link:
                   mur620c/mir/camera_floor_left_color_frame:
                     mur620c/mir/camera_floor_left_color_optical_frame:
@@ -437,6 +411,12 @@ Visualization Manager:
                       {}
                   mur620c/mir/camera_floor_right_depth_optical_frame:
                     {}
+                  mur620c/mir/camera_infra1_frame:
+                    mur620c/mir/camera_infra1_optical_frame:
+                      {}
+                  mur620c/mir/camera_infra2_frame:
+                    mur620c/mir/camera_infra2_optical_frame:
+                      {}
                 mur620c/mir/fl_caster_rotation_link:
                   mur620c/mir/fl_caster_wheel_link:
                     {}
@@ -472,24 +452,14 @@ Visualization Manager:
                                       mur620c/UR10_r/flange:
                                         mur620c/UR10_r/tool0:
                                           {}
-                        target_point:
-                          {}
-                        ur_target_pose:
-                          {}
+                        sensor_optical_frame:
+                          sensor_frame:
+                            {}
                 mur620c/mir/us_1_frame:
                   {}
                 mur620c/mir/us_2_frame:
                   {}
-                ur_local_target_pose:
-                  {}
-          target_pose_controll0:
-            {}
-          ur_global_target_pose:
-            {}
-        mocap:
-          mur620c/target_point:
-            {}
-          target_pose_0:
+          world:
             {}
         mur620b/UR10_r/base_link:
           mur620b/UR10_r/calibrated_ee_pose:
@@ -523,69 +493,18 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
-      Enabled: true
+      Enabled: false
       Links:
         All Links Enabled: true
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        base:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        base_link_inertia:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        flange:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        forearm_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        shoulder_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        tool0:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        upper_arm_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        wrist_1_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        wrist_2_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        wrist_3_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Name: RobotModel
       Robot Description: /mur620c/UR10_r/robot_description
       TF Prefix: mur620c/UR10_r
       Update Interval: 0
-      Value: true
+      Value: false
       Visual Enabled: true
     - Alpha: 1
       Buffer Length: 1
@@ -610,6 +529,34 @@ Visualization Manager:
       Shaft Length: 0.10000000149011612
       Topic: /ur_path
       Unreliable: false
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /cloud_out
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
       Value: true
   Enabled: true
   Global Options:
@@ -639,7 +586,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 4.918919563293457
+      Distance: 3.2474520206451416
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -647,17 +594,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 51.25032043457031
-        Y: 42.81856155395508
-        Z: -5.03919454786228e-06
+        X: 51.13684844970703
+        Y: 43.215911865234375
+        Z: -5.158403837413061e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.2597973346710205
+      Pitch: -0.10020266473293304
       Target Frame: <Fixed Frame>
-      Yaw: 2.850398540496826
+      Yaw: 1.7753970623016357
     Saved: ~
 Window Geometry:
   Displays:
