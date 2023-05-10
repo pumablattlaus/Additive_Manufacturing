@@ -84,8 +84,7 @@ class Start_formation_controller(smach.State):
         # convert ur path to a list of poses 
         ur_path_array = []
         for pose in ur_path.poses:
-            theta = transformations.euler_from_quaternion([pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])[2]
-            ur_path_array.append([pose.pose.position.x, pose.pose.position.y , pose.pose.position.z, theta])
+            ur_path_array.append([pose.pose.position.x, pose.pose.position.y , pose.pose.position.z, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])
 
         # compute length of ur path and mir path to compare them
         mir_path_length = compute_path_length(path)
@@ -147,7 +146,7 @@ class Move_UR_to_start_pose(smach.State):
         ur_start_pose[6] = ur_path.poses[0].pose.orientation.w
         
         rospy.loginfo('Executing state Move_UR_to_start_pose')
-        process = launch_ros_node("move_ur_to_start_pose","journal_experiments","move_ur_to_start_pose.py", "", "", ur_start_pose=ur_start_pose)
+        process = launch_ros_node("move_ur_to_start_pose","journal_experiments","move_ur_to_start_pose.py", "", "", ur_start_pose=ur_start_pose, mir_angle = mir_angle)
         
         while process.is_alive() and not rospy.is_shutdown():
                 rospy.sleep(0.1)

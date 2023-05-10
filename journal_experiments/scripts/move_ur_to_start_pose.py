@@ -12,14 +12,16 @@ class MoveURToStartPose():
     
     def config(self):
         self.ur_velocity_limit = rospy.get_param("~ur_velocity_limit", 0.06)
-        self.ur_angular_velocity_limit = rospy.get_param("~ur_angular_velocity_limit", 0.1)
+        self.ur_angular_velocity_limit = rospy.get_param("~ur_angular_velocity_limit", 0.15)
         self.ur_acceleration_limit = rospy.get_param("~ur_acceleration_limit", 0.02)
         self.ur_angular_acceleration_limit = rospy.get_param("~ur_angular_acceleration_limit", 0.1)
         self.Kpx = rospy.get_param("~Kpx", 0.3)
         self.Kpy = rospy.get_param("~Kpy", 0.3)
         self.Kpz = rospy.get_param("~Kpz", 0.1)
+        self.Kp_phi = rospy.get_param("~Kp_phi", 0.3)
         self.ur_target_tolerance = rospy.get_param("~ur_target_tolerance", 0.01)
-        self.ur_scanner_angular_offset = rospy.get_param("~ur_scanner_angular_offset", 0.995 - math.pi/4)
+        self.ur_scanner_angular_offset = rospy.get_param("~ur_scanner_angular_offset", 0.995 + math.pi/2)
+        self.mir_angle = rospy.get_param("~mir_angle", 0.0)
         pass
     
     
@@ -74,7 +76,9 @@ class MoveURToStartPose():
             e_x = ur_start_pose_x - self.ur_pose_current.position.x
             e_y = ur_start_pose_y - self.ur_pose_current.position.y
             e_z = self.ur_start_pose.position.z - self.ur_pose_current.position.z
-            e_phi = ur_target_phi - ur_current_phi + self.ur_scanner_angular_offset
+            e_phi = ur_target_phi - self.mir_angle - ur_current_phi + self.ur_scanner_angular_offset
+            
+            print("ur_target_phi: " + str(ur_target_phi), "ur_current_phi: " + str(ur_current_phi),"mir_angle: " + str(self.mir_angle))
             
             if e_phi > math.pi:
                 e_phi = e_phi - 2 * math.pi
@@ -87,7 +91,7 @@ class MoveURToStartPose():
             self.ur_command.linear.x = e_x * self.Kpx
             self.ur_command.linear.y = e_y * self.Kpy
             self.ur_command.linear.z = e_z * self.Kpz
-            self.ur_command.angular.z = e_phi * self.Kpz
+            self.ur_command.angular.z = e_phi * self.Kp_phi
                        
             # limit velocity
             ur_command = self.limit_velocity(self.ur_command, self.ur_command_old)
@@ -96,7 +100,7 @@ class MoveURToStartPose():
             self.ur_twist_publisher.publish(ur_command)
         
             # check if target is reached
-            if abs(e_x) < self.ur_target_tolerance and abs(e_y) < self.ur_target_tolerance and abs(e_z) < self.ur_target_tolerance and abs(e_phi) < self.ur_target_tolerance * 2 :
+            if abs(e_x) < self.ur_target_tolerance and abs(e_y) < self.ur_target_tolerance and abs(e_z) < self.ur_target_tolerance and abs(e_phi) < self.ur_target_tolerance  :
                 self.ur_command.linear.x = 0
                 self.ur_command.linear.y = 0
                 self.ur_command.linear.z = 0

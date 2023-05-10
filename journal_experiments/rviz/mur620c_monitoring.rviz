@@ -13,7 +13,6 @@ Panels:
         - /RobotModel2
         - /Path2
         - /PointCloud21
-        - /PointCloud21/Status1
         - /RobotModel3
       Splitter Ratio: 0.8283433318138123
     Tree Height: 1522
@@ -34,7 +33,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: PointCloud2
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -248,10 +247,16 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        actual_pose_0:
+          Value: true
         base:
           Value: false
         map:
           Value: false
+        mir_global_target_pose:
+          Value: true
+        mocap:
+          Value: true
         mur620b/UR10_r/base_link:
           Value: false
         mur620b/UR10_r/calibrated_ee_pose:
@@ -269,7 +274,7 @@ Visualization Manager:
         mur620c/UR10_r/shoulder_link:
           Value: false
         mur620c/UR10_r/tool0:
-          Value: true
+          Value: false
         mur620c/UR10_r/upper_arm_link:
           Value: false
         mur620c/UR10_r/wrist_1_link:
@@ -362,14 +367,22 @@ Visualization Manager:
           Value: false
         mur620c/mir/us_2_frame:
           Value: false
-        sensor_frame:
+        mur620c/target_point:
+          Value: true
+        target_point:
           Value: false
-        sensor_optical_frame:
+        target_pose_0:
           Value: false
+        target_pose_controll0:
+          Value: true
         tool0_controller:
           Value: false
-        world:
+        ur_global_target_pose:
           Value: true
+        ur_local_target_pose:
+          Value: false
+        ur_target_pose:
+          Value: false
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -381,6 +394,10 @@ Visualization Manager:
           tool0_controller:
             {}
         map:
+          actual_pose_0:
+            {}
+          mir_global_target_pose:
+            {}
           mur620c/mir/odom:
             mur620c/mir/base_footprint:
               mur620c/mir/base_link:
@@ -453,14 +470,24 @@ Visualization Manager:
                                       mur620c/UR10_r/flange:
                                         mur620c/UR10_r/tool0:
                                           {}
-                        sensor_optical_frame:
-                          sensor_frame:
-                            {}
+                        target_point:
+                          {}
+                        ur_target_pose:
+                          {}
                 mur620c/mir/us_1_frame:
                   {}
                 mur620c/mir/us_2_frame:
                   {}
-          world:
+                ur_local_target_pose:
+                  {}
+          target_pose_controll0:
+            {}
+          ur_global_target_pose:
+            {}
+        mocap:
+          mur620c/target_point:
+            {}
+          target_pose_0:
             {}
         mur620b/UR10_r/base_link:
           mur620b/UR10_r/calibrated_ee_pose:
@@ -615,16 +642,11 @@ Visualization Manager:
       Collision Enabled: false
       Enabled: true
       Links:
-        All Links Enabled:
-          {}
+        All Links Enabled: true
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        sensor_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
       Name: RobotModel
       Robot Description: /lj_v7200_robot_description
       TF Prefix: ""
@@ -658,20 +680,26 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -1.800004243850708
-      Class: rviz/TopDownOrtho
+      Class: rviz/ThirdPersonFollower
+      Distance: 2.7952489852905273
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 52.46753692626953
+        Y: 43.21139907836914
+        Z: -8.135128155117854e-06
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 624.6268920898438
+      Pitch: 0.685398280620575
       Target Frame: <Fixed Frame>
-      X: 51.26498031616211
-      Y: 43.26999282836914
+      Yaw: 0.470398485660553
     Saved: ~
 Window Geometry:
   Displays:

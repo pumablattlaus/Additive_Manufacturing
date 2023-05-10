@@ -13,16 +13,8 @@ from copy import deepcopy
 class Control_ur():
     
     def config(self):
-        # self.Kpx = -0.4
-        # self.Kpy = -0.4
-        # self.Kpz = 0.0
-        # self.Kp_mir = 0.1  
-        # self.ur_acceleration_limit = 1.0
-        # self.ur_jerk_limit = 0.3
-        # self.ur_velocity_limit = 0.15
-        # self.ur_target_velocity = 0.1
         self.path_distance_between_points = 0.01
-        self.ur_scanner_angular_offset = rospy.get_param("~ur_scanner_angular_offset", 0.995)
+        self.ur_scanner_angular_offset = rospy.get_param("~ur_scanner_angular_offset", 0.995 + math.pi/2)
     
     
     def __init__(self):
@@ -124,13 +116,12 @@ class Control_ur():
             mir_vel_global = self.compute_mir_vel_global(self.mir_cmd_vel, mir_angle)
             
             # compute the ur_path in global frame
-
             ur_path_velociy_global = Twist()
             ur_path_velociy_global.linear.x = self.ur_target_velocity * math.cos(mir_angle)
             ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(mir_angle)            
                               
             # compute current tcp angle
-            ur_target_phi = transformations.euler_from_quaternion([self.ur_pose.orientation.x, self.ur_pose.orientation.y, self.ur_pose.orientation.z, self.ur_pose.orientation.w])[2]
+            ur_target_phi = transformations.euler_from_quaternion([ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w])[2]
             current_tcp_angle = transformations.euler_from_quaternion([self.ur_pose.orientation.x, self.ur_pose.orientation.y, self.ur_pose.orientation.z, self.ur_pose.orientation.w])[2]
                                     
             # compute the control law
@@ -139,7 +130,7 @@ class Control_ur():
             ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y)
             ur_twist_command.linear.z = self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)
             
-            e_phi = ur_target_phi - current_tcp_angle + self.ur_scanner_angular_offset
+            e_phi = ur_target_phi - mir_angle - current_tcp_angle + self.ur_scanner_angular_offset
             if e_phi > math.pi:
                 e_phi -= 2*math.pi
             elif e_phi < -math.pi:
