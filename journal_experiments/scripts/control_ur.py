@@ -22,6 +22,7 @@ class Control_ur():
         # self.ur_velocity_limit = 0.15
         # self.ur_target_velocity = 0.1
         self.path_distance_between_points = 0.01
+        self.ur_scanner_angular_offset = rospy.get_param("~ur_scanner_angular_offset", 0.995)
     
     
     def __init__(self):
@@ -75,7 +76,10 @@ class Control_ur():
             ur_target_pose_global.position.x = self.ur_path_array[self.path_index][0]
             ur_target_pose_global.position.y = self.ur_path_array[self.path_index][1]
             ur_target_pose_global.position.z = self.ur_path_array[self.path_index][2]
-            ur_target_pose_global.orientation.w = 1.0
+            ur_target_pose_global.orientation.x = self.ur_path_array[self.path_index][3]
+            ur_target_pose_global.orientation.y = self.ur_path_array[self.path_index][4]
+            ur_target_pose_global.orientation.z = self.ur_path_array[self.path_index][5]
+            ur_target_pose_global.orientation.w = self.ur_path_array[self.path_index][6]
             
             # broadcast target pose
             self.ur_target_pose_broadcaster.sendTransform((ur_target_pose_global.position.x, ur_target_pose_global.position.y, ur_target_pose_global.position.z), (ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w), rospy.Time.now(), "ur_global_target_pose", "map")
@@ -119,25 +123,15 @@ class Control_ur():
             # compute mir vel in global frame
             mir_vel_global = self.compute_mir_vel_global(self.mir_cmd_vel, mir_angle)
             
-            # compute induced tcp velocity of the UR by the MIR
-            induced_base_velocity_global = self.compute_mir_induced_ur_base_velocity(self.mir_pose, self.mir_ur_transform, mir_vel_global )
-            induced_tcp_velocity_global = self.compute_mir_induced_tcp_velocity(ur_target_pose_local, self.ur_pose, self.mir_pose, self.mir_ur_transform, mir_vel_global )
-            
             # compute the ur_path in global frame
-            direction = math.atan2(self.ur_path_array[self.path_index+1][1] - self.ur_path_array[self.path_index][1], self.ur_path_array[self.path_index+1][0] - self.ur_path_array[self.path_index][0]) 
+
             ur_path_velociy_global = Twist()
             ur_path_velociy_global.linear.x = self.ur_target_velocity * math.cos(mir_angle)
-            ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(mir_angle)
-            
-            # compute the difference between the target tcp velocity and the induced tcp velocity in global frame
-            ur_tcp_target_velocity_global = Twist()
-            ur_tcp_target_velocity_global.linear.x = ur_path_velociy_global.linear.x - induced_tcp_velocity_global.linear.x
-            ur_tcp_target_velocity_global.linear.y = ur_path_velociy_global.linear.y - induced_tcp_velocity_global.linear.y
-            
-            # transform global tcp velocity to local tcp velocity
-            ur_tcp_target_velocity_local = Twist()
-            ur_tcp_target_velocity_local.linear.x = ur_tcp_target_velocity_global.linear.x * math.cos(mir_angle) - ur_tcp_target_velocity_global.linear.y * math.sin(mir_angle)
-            ur_tcp_target_velocity_local.linear.y = ur_tcp_target_velocity_global.linear.x * math.sin(mir_angle) + ur_tcp_target_velocity_global.linear.y * math.cos(mir_angle)
+            ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(mir_angle)            
+                              
+            # compute current tcp angle
+            ur_target_phi = transformations.euler_from_quaternion([self.ur_pose.orientation.x, self.ur_pose.orientation.y, self.ur_pose.orientation.z, self.ur_pose.orientation.w])[2]
+            current_tcp_angle = transformations.euler_from_quaternion([self.ur_pose.orientation.x, self.ur_pose.orientation.y, self.ur_pose.orientation.z, self.ur_pose.orientation.w])[2]
                                     
             # compute the control law
             ur_twist_command = Twist()
@@ -145,10 +139,15 @@ class Control_ur():
             ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y)
             ur_twist_command.linear.z = self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)
             
-            # add feed forward term
-            ur_twist_command.linear.x = ur_twist_command.linear.x + self.Kp_ffx * ur_tcp_target_velocity_local.linear.x
-            ur_twist_command.linear.y = ur_twist_command.linear.y + self.Kp_ffy * ur_tcp_target_velocity_local.linear.y
-                        
+            e_phi = ur_target_phi - current_tcp_angle + self.ur_scanner_angular_offset
+            if e_phi > math.pi:
+                e_phi -= 2*math.pi
+            elif e_phi < -math.pi:
+                e_phi += 2*math.pi
+                
+            print("e_phi: " + str(e_phi))
+            ur_twist_command.angular.z = self.Kp_phi * e_phi
+                                    
             # compute path speed
             path_speed = self.compute_path_speed_and_distance(ur_path_velociy_global)
             
@@ -159,33 +158,9 @@ class Control_ur():
                 path_index_msg.data = self.path_index
                 self.path_index_publisher.publish(path_index_msg)          
             
-            
-            # set timestamp on initial run and save initial target pose
-            if self.initial_run:
-                self.initial_run = False
-                # self.integrated_ur_target_pose = ur_target_pose_base
-                self.integrated_ur_target_pose = Pose()
-                self.integrated_ur_target_pose.position.x = self.mir_path_array[self.path_index][0]
-                self.integrated_ur_target_pose.position.y = self.mir_path_array[self.path_index][1]
-                self.integrated_ur_target_pose.orientation.w = 1.0
-            
             # control mir velocity
             self.control_mir_velocity(mir_target_pose_global)
-            
-            # update target pose based on target velocity (as a check)
-            # self.integrated_ur_target_pose.position.x += ur_twist_command.linear.x * rate.sleep_dur.to_sec()
-            # self.integrated_ur_target_pose.position.y += ur_twist_command.linear.y * rate.sleep_dur.to_sec()
-            # self.integrated_ur_target_pose.position.z += ur_twist_command.linear.z * rate.sleep_dur.to_sec()
-            self.integrated_ur_target_pose.position.x += induced_base_velocity_global.linear.x * rate.sleep_dur.to_sec()
-            self.integrated_ur_target_pose.position.y += induced_base_velocity_global.linear.y * rate.sleep_dur.to_sec()
-            self.integrated_ur_target_pose.position.z += induced_base_velocity_global.linear.z * rate.sleep_dur.to_sec()
-            
-            
-            # broadcast integrated target pose
-            self.ur_target_pose_broadcaster.sendTransform((self.integrated_ur_target_pose.position.x, self.integrated_ur_target_pose.position.y, self.integrated_ur_target_pose.position.z), (self.integrated_ur_target_pose.orientation.x, self.integrated_ur_target_pose.orientation.y, self.integrated_ur_target_pose.orientation.z, self.integrated_ur_target_pose.orientation.w), rospy.Time.now(), "integrated_target_point", "map") #self.ur_base_link_frame_id
-            
-
-            
+                           
             # limit velocity
             ur_command = self.limit_velocity(ur_twist_command, self.ur_command_old)
                         
@@ -201,34 +176,6 @@ class Control_ur():
         mir_vel_global.linear.y = mir_vel_local.linear.x * math.sin(mir_angle) + mir_vel_local.linear.y * math.cos(mir_angle)
         mir_vel_global.angular.z = mir_vel_local.angular.z
         return mir_vel_global
-            
-
-    def compute_mir_induced_ur_base_velocity(self,mir_pose = Pose(), mir_ur_transform = Transform(),         mir_vel_global = Twist()):
-        induced_ur_base_velocity = Twist()
-        induced_ur_base_velocity.linear.x = mir_vel_global.linear.x + mir_vel_global.angular.z * (mir_pose.position.y - mir_ur_transform.translation.y)
-        induced_ur_base_velocity.linear.y = mir_vel_global.linear.y - mir_vel_global.angular.z * (mir_pose.position.x - mir_ur_transform.translation.x)
-        return induced_ur_base_velocity
-
-    def compute_mir_induced_tcp_velocity(self, ur_target_pose_local, ur_pose = Pose(), mir_pose = Pose(), mir_ur_transform = Transform(),         mir_vel_global = Twist()):
-        # first: transform ur_pose to mir frame
-        ur_pose_mir_frame = Pose()
-        ur_pose_mir_frame.position.x = ur_pose.position.x - mir_ur_transform.translation.x
-        ur_pose_mir_frame.position.y = ur_pose.position.y - mir_ur_transform.translation.y
-
-
-        # second: compute the distance between the ur_pose and the mir
-        distance = math.sqrt(ur_target_pose_local.position.x**2 + ur_target_pose_local.position.y**2)
-
-        # third: compute the angle between the ur_pose and the mir
-        angle_ur_pose = math.atan2(-ur_target_pose_local.position.y, -ur_target_pose_local.position.x)
-        angle_mir = transformations.euler_from_quaternion([mir_pose.orientation.x, mir_pose.orientation.y, mir_pose.orientation.z, mir_pose.orientation.w])[2]
-
-        # fourth: compute induced velocity
-        induced_tcp_velocity_global = Twist()
-        induced_tcp_velocity_global.linear.x = mir_vel_global.linear.x - mir_vel_global.angular.z * distance * math.sin(angle_mir + angle_ur_pose)
-        induced_tcp_velocity_global.linear.y = mir_vel_global.linear.y + mir_vel_global.angular.z * distance * math.cos(angle_mir + angle_ur_pose)
-
-        return induced_tcp_velocity_global
         
             
     
