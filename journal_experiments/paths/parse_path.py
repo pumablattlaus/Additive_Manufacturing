@@ -85,10 +85,19 @@ for i in range(0,len(wall_x)-1): #len(robot0_xhat)
     ur_path_point.pose.position.x = wall_x[i]
     ur_path_point.pose.position.y = wall_y[i]
     ur_path_point.pose.position.z = wall_z[i]
+    
+    # add orientation
+    orientation = math.atan2(wall_y[i+1]-wall_y[i], wall_x[i+1]-wall_x[i])
+    q = tf.transformations.quaternion_from_euler(0, 0, orientation)
 
     ur_path.poses[i].pose.position.x = ur_path_point.pose.position.x
     ur_path.poses[i].pose.position.y = ur_path_point.pose.position.y
     ur_path.poses[i].pose.position.z = ur_path_point.pose.position.z
+    ur_path.poses[i].pose.orientation.x = q[0]
+    ur_path.poses[i].pose.orientation.y = q[1]
+    ur_path.poses[i].pose.orientation.z = q[2]
+    ur_path.poses[i].pose.orientation.w = q[3]
+    
 
 rospy.sleep(2)
 mir_pub.publish(mir_path)
