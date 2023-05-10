@@ -55,6 +55,7 @@ class Control_ur_helper():
         self.base_node.Kpx = config["Kpx"]
         self.base_node.Kpy = config["Kpy"]
         self.base_node.Kpz = config["Kpz"]
+        self.base_node.Kp_phi = config["Kp_phi"]
         self.base_node.Kp_mir = config["Kp_mir"]
         self.base_node.Kp_ffx = config["Kp_ffx"]
         self.base_node.Kp_ffy = config["Kp_ffy"]
@@ -76,6 +77,7 @@ class Control_ur_helper():
         ddynrec.add_variable("Kpx", "float/double variable", -0.75, -1.0, 1.0)
         ddynrec.add_variable("Kpy", "float/double variable", -0.75, -1.0, 1.0)
         ddynrec.add_variable("Kpz", "float/double variable", 0.50, -1.0, 1.0)
+        ddynrec.add_variable("Kp_phi", "float/double variable", 0.1, -1.0, 1.0)
         ddynrec.add_variable("Kp_mir", "float/double variable", 0.1, -1.0, 1.0)
         ddynrec.add_variable("Kp_ffx", "float/double variable", 0.0, -1.0, 1.0)
         ddynrec.add_variable("Kp_ffy", "float/double variable", 0.0, -1.0, 1.0)
