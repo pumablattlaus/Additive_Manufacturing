@@ -120,6 +120,7 @@ class Control_ur():
             mir_vel_global = self.compute_mir_vel_global(self.mir_cmd_vel, mir_angle)
             
             # compute induced tcp velocity of the UR by the MIR
+            induced_base_velocity_global = self.compute_mir_induced_ur_base_velocity(self.mir_pose, self.mir_ur_transform, mir_vel_global )
             induced_tcp_velocity_global = self.compute_mir_induced_tcp_velocity(ur_target_pose_local, self.ur_pose, self.mir_pose, self.mir_ur_transform, mir_vel_global )
             
             # compute the ur_path in global frame
@@ -175,9 +176,9 @@ class Control_ur():
             # self.integrated_ur_target_pose.position.x += ur_twist_command.linear.x * rate.sleep_dur.to_sec()
             # self.integrated_ur_target_pose.position.y += ur_twist_command.linear.y * rate.sleep_dur.to_sec()
             # self.integrated_ur_target_pose.position.z += ur_twist_command.linear.z * rate.sleep_dur.to_sec()
-            self.integrated_ur_target_pose.position.x += induced_tcp_velocity_global.linear.x * rate.sleep_dur.to_sec() + ur_tcp_target_velocity_local.linear.x 
-            self.integrated_ur_target_pose.position.y += induced_tcp_velocity_global.linear.y * rate.sleep_dur.to_sec()
-            self.integrated_ur_target_pose.position.z += induced_tcp_velocity_global.linear.z * rate.sleep_dur.to_sec()
+            self.integrated_ur_target_pose.position.x += induced_base_velocity_global.linear.x * rate.sleep_dur.to_sec()
+            self.integrated_ur_target_pose.position.y += induced_base_velocity_global.linear.y * rate.sleep_dur.to_sec()
+            self.integrated_ur_target_pose.position.z += induced_base_velocity_global.linear.z * rate.sleep_dur.to_sec()
             
             
             # broadcast integrated target pose
@@ -202,6 +203,12 @@ class Control_ur():
         return mir_vel_global
             
 
+    def compute_mir_induced_ur_base_velocity(self,mir_pose = Pose(), mir_ur_transform = Transform(),         mir_vel_global = Twist()):
+        induced_ur_base_velocity = Twist()
+        induced_ur_base_velocity.linear.x = mir_vel_global.linear.x + mir_vel_global.angular.z * (mir_pose.position.y - mir_ur_transform.translation.y)
+        induced_ur_base_velocity.linear.y = mir_vel_global.linear.y - mir_vel_global.angular.z * (mir_pose.position.x - mir_ur_transform.translation.x)
+        return induced_ur_base_velocity
+
     def compute_mir_induced_tcp_velocity(self, ur_target_pose_local, ur_pose = Pose(), mir_pose = Pose(), mir_ur_transform = Transform(),         mir_vel_global = Twist()):
         # first: transform ur_pose to mir frame
         ur_pose_mir_frame = Pose()
@@ -213,7 +220,7 @@ class Control_ur():
         distance = math.sqrt(ur_target_pose_local.position.x**2 + ur_target_pose_local.position.y**2)
 
         # third: compute the angle between the ur_pose and the mir
-        angle_ur_pose = -math.atan2(ur_target_pose_local.position.y, ur_target_pose_local.position.x)
+        angle_ur_pose = math.atan2(-ur_target_pose_local.position.y, -ur_target_pose_local.position.x)
         angle_mir = transformations.euler_from_quaternion([mir_pose.orientation.x, mir_pose.orientation.y, mir_pose.orientation.z, mir_pose.orientation.w])[2]
 
         # fourth: compute induced velocity
