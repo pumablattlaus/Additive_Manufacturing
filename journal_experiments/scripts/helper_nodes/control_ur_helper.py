@@ -3,7 +3,7 @@ import rospy
 from geometry_msgs.msg import PoseStamped, Pose, Twist
 import tf
 from ddynamic_reconfigure_python.ddynamic_reconfigure import DDynamicReconfigure
-from std_msgs.msg import Int32, Int16
+from std_msgs.msg import Int32, Int16, Float32
 
 class Control_ur_helper():
 
@@ -13,6 +13,7 @@ class Control_ur_helper():
         self.base_node.ur_command_topic = rospy.get_param("~ur_command_topic", "/mur620c/UR10_r/twist_controller/command_safe")
         self.base_node.ur_pose_topic = rospy.get_param("~ur_pose_topic", "/mur620c/UR10_r/ur_calibrated_pose")
         self.base_node.mir_pose_topic = rospy.get_param("~mir_pose_topic", "/mur620c/mir/robot_pose")
+        self.lateral_nozzle_pose_override_topic = rospy.get_param("~lateral_nozzle_pose_override_topic", "/lateral_nozzle_pose_override")
         self.base_node.ur_base_link_frame_id = rospy.get_param("~ur_base_link_frame_id", "mur620c/UR10_r/base_link")
         self.base_node.mir_cmd_vel_topic = rospy.get_param("~mir_cmd_vel_topic", "/mur620c/mir/cmd_vel")
         self.base_node.tf_prefix = rospy.get_param("~tf_prefix", "mur620c/")
@@ -38,6 +39,7 @@ class Control_ur_helper():
         rospy.Subscriber(self.base_node.ur_pose_topic, PoseStamped, self.ur_pose_callback)
         rospy.Subscriber(self.base_node.mir_cmd_vel_topic, Twist, self.mir_cmd_vel_callback)
         rospy.Subscriber(self.base_node.mir_pose_topic, Pose, self.mir_pose_callback)
+        rospy.Subscriber(self.lateral_nozzle_pose_override_topic, Float32,  self.lateral_nozzle_pose_override_callback)
 
     def ur_pose_callback(self, data = PoseStamped()):
         self.base_node.ur_pose = data.pose
@@ -59,6 +61,7 @@ class Control_ur_helper():
         self.base_node.Kp_mir = config["Kp_mir"]
         self.base_node.Kp_ffx = config["Kp_ffx"]
         self.base_node.Kp_ffy = config["Kp_ffy"]
+        self.base_node.Kp_keyence = config["Kp_keyence"]
         self.servo_position = config["servo_position"]
         if self.servo_position != self.servo_position_old:
             position_msg = Int16()
@@ -81,6 +84,7 @@ class Control_ur_helper():
         ddynrec.add_variable("Kp_mir", "float/double variable", 0.1, -1.0, 1.0)
         ddynrec.add_variable("Kp_ffx", "float/double variable", 0.0, -1.0, 1.0)
         ddynrec.add_variable("Kp_ffy", "float/double variable", 0.0, -1.0, 1.0)
+        ddynrec.add_variable("Kp_keyence", "float/double variable", 0.0, -1.0, 1.0)
         ddynrec.add_variable("servo_position", "integer variable", self.servo_position, 0, 1200)
         # ddynrec.add_variable("decimal", "float/double variable", -0.4, -1.0, 1.0)
         # ddynrec.add_variable("integer", "integer variable", 0, -1, 1)
@@ -96,3 +100,5 @@ class Control_ur_helper():
         # Start the server
         ddynrec.start(self.dyn_rec_callback)
 
+    def lateral_nozzle_pose_override_callback(self, msg = Float32()):
+        self.base_node.lateral_nozzle_pose_override = msg.data
