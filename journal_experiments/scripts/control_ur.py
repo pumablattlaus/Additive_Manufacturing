@@ -43,7 +43,7 @@ class Control_ur():
         # start moving the mir
         self.mir_target_velocity = Twist()
         self.mir_target_velocity.linear.x = self.ur_target_velocity * self.length_factor * 0.80
-        self.mir_target_velocity_publisher.publish(self.mir_target_velocity)
+        #self.mir_target_velocity_publisher.publish(self.mir_target_velocity)
         
         # wait for the subscriber to receive the first pose message
         rospy.loginfo("Waiting for mir cmd_vel message")
@@ -63,6 +63,15 @@ class Control_ur():
         # wait until tf is ready
         self.listener.waitForTransform("map", "sensor_frame", rospy.Time.now(), rospy.Duration(10.0))
         
+        rate = rospy.Rate(100)
+        while not rospy.is_shutdown():
+            print(self.lateral_nozzle_pose_override)
+            ur_command = Twist()
+            ur_command.linear.x = 0.0
+            ur_command.linear.y = self.lateral_nozzle_pose_override * self.Kp_keyence
+            # publish command
+            self.ur_twist_publisher.publish(ur_command)
+            rate.sleep()
         
         self.time_old = rospy.Time.now()
         rate = rospy.Rate(100)
@@ -89,12 +98,17 @@ class Control_ur():
             ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(mir_angle)            
             
             # compute e_phi based on the sensor frame and current tcp angle
-            e_phi = self.compute_e_phi(ur_target_pose_global)
+            e_phi, sensor_angle = self.compute_e_phi(ur_target_pose_global)
+            
+            # to correct errors in the scanner alingment, the robot has to move sideways
+            [x,y] = self.compute_nozzle_correction(sensor_angle, mir_angle)
+            
+            print("x: ", x, "y: ", y)
             
             # compute the control law
             ur_twist_command = Twist()
-            ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x)
-            ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y)
+            ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x) + self.Kp_keyence * x
+            ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y) + self.Kp_keyence * y
             ur_twist_command.linear.z = self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)
             ur_twist_command.angular.z = self.Kp_phi * e_phi
             
@@ -152,7 +166,25 @@ class Control_ur():
         self.mir_ur_transform.rotation.z = q[2]
         self.mir_ur_transform.rotation.w = q[3]
     
-    
+    def compute_nozzle_correction(self, sensor_angle, mir_angle):
+        # get rotation matrix from sensor angle
+        R = transformations.rotation_matrix(sensor_angle, [0,0,1])
+        
+        # define nozzle velocity in the nozzle frame
+        nozzle_vel_local =  [0.0,self.lateral_nozzle_pose_override,0.0] 
+        
+        # rotate nozzle velocity into the global frame
+        nozzle_vel_global = [0.0,0.0]
+        nozzle_vel_global[0] = R[0][0] * nozzle_vel_local[0] + R[0][1] * nozzle_vel_local[1] + R[0][2] * nozzle_vel_local[2]
+        nozzle_vel_global[1] = R[1][0] * nozzle_vel_local[0] + R[1][1] * nozzle_vel_local[1] + R[1][2] * nozzle_vel_local[2]
+        
+        # rotate nozzle velocity into the mir frame
+        nozzle_vel_mir = [0.0,0.0]
+        nozzle_vel_mir[0] = nozzle_vel_global[0] * math.cos(mir_angle) - nozzle_vel_global[1] * math.sin(mir_angle)
+        nozzle_vel_mir[1] = nozzle_vel_global[0] * math.sin(mir_angle) + nozzle_vel_global[1] * math.cos(mir_angle)
+
+        return nozzle_vel_mir        
+        
     
     def control_mir_velocity(self,target_pose = Pose()):
         error = math.sqrt((target_pose.position.x - self.mir_pose.position.x)**2 + (target_pose.position.y - self.mir_pose.position.y)**2)
@@ -229,7 +261,7 @@ class Control_ur():
             e_phi -= 2*math.pi
         elif e_phi < -math.pi:
             e_phi += 2*math.pi
-        return e_phi
+        return e_phi, sensor_angle
         
     def compute_ur_target_pose_base(self,ur_target_pose_local):
         # add the transform between mir and ur_base_link

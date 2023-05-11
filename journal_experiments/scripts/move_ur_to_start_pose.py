@@ -34,7 +34,7 @@ class MoveURToStartPose():
         self.ur_start_pose = Pose()
         self.ur_start_pose.position.x = ur_start_pose_array[0]
         self.ur_start_pose.position.y = ur_start_pose_array[1]
-        self.ur_start_pose.position.z = ur_start_pose_array[2]
+        self.ur_start_pose.position.z = ur_start_pose_array[2] + 0.1
         self.ur_start_pose.orientation.x = ur_start_pose_array[3]
         self.ur_start_pose.orientation.y = ur_start_pose_array[4]   
         self.ur_start_pose.orientation.z = ur_start_pose_array[5]
