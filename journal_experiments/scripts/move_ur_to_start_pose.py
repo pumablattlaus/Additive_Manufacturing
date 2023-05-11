@@ -20,7 +20,7 @@ class MoveURToStartPose():
         self.Kpz = rospy.get_param("~Kpz", 0.1)
         self.Kp_phi = rospy.get_param("~Kp_phi", 0.3)
         self.ur_target_tolerance = rospy.get_param("~ur_target_tolerance", 0.01)
-        self.ur_scanner_angular_offset = rospy.get_param("~ur_scanner_angular_offset", 0.995 + math.pi/2)
+        self.ur_scanner_angular_offset = rospy.get_param("~ur_scanner_angular_offset", -math.pi)
         self.mir_angle = rospy.get_param("~mir_angle", 0.0)
         pass
     
@@ -39,8 +39,6 @@ class MoveURToStartPose():
         self.ur_start_pose.orientation.y = ur_start_pose_array[4]   
         self.ur_start_pose.orientation.z = ur_start_pose_array[5]
         self.ur_start_pose.orientation.w = ur_start_pose_array[6]
-        
-        print(self.ur_start_pose)
         
         self.ur_command_topic = rospy.get_param("~ur_command_topic", "/mur620c/UR10_r/twist_controller/command_safe")
         self.ur_pose_topic = rospy.get_param("~ur_pose_topic", "/mur620c/UR10_r/ur_calibrated_pose")
@@ -77,15 +75,11 @@ class MoveURToStartPose():
             e_y = ur_start_pose_y - self.ur_pose_current.position.y
             e_z = self.ur_start_pose.position.z - self.ur_pose_current.position.z
             e_phi = ur_target_phi - self.mir_angle - ur_current_phi + self.ur_scanner_angular_offset
-            
-            print("ur_target_phi: " + str(ur_target_phi), "ur_current_phi: " + str(ur_current_phi),"mir_angle: " + str(self.mir_angle))
-            
+                        
             if e_phi > math.pi:
                 e_phi = e_phi - 2 * math.pi
             elif e_phi < -math.pi:
                 e_phi = e_phi + 2 * math.pi
-            print("e_phi: " + str(e_phi))
-            #print(ur_target_phi + self.ur_scanner_angular_offset,ur_current_phi)
             
             # calculate command
             self.ur_command.linear.x = e_x * self.Kpx

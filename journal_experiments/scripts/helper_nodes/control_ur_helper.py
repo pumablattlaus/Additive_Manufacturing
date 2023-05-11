@@ -10,7 +10,6 @@ class Control_ur_helper():
     def __init__(self,base_node):
         self.base_node = base_node
         
-
         self.base_node.ur_command_topic = rospy.get_param("~ur_command_topic", "/mur620c/UR10_r/twist_controller/command_safe")
         self.base_node.ur_pose_topic = rospy.get_param("~ur_pose_topic", "/mur620c/UR10_r/ur_calibrated_pose")
         self.base_node.mir_pose_topic = rospy.get_param("~mir_pose_topic", "/mur620c/mir/robot_pose")
@@ -19,6 +18,7 @@ class Control_ur_helper():
         self.base_node.tf_prefix = rospy.get_param("~tf_prefix", "mur620c/")
         self.base_node.ur_twist_publisher = rospy.Publisher(self.base_node.ur_command_topic, Twist, queue_size=1)
         self.base_node.ur_target_pose_broadcaster = tf.TransformBroadcaster()
+        self.base_node.listener = tf.TransformListener()
         self.base_node.initial_run = True
 
         self.base_node.path_index_publisher = rospy.Publisher('/path_index', Int32, queue_size=1)
@@ -71,7 +71,7 @@ class Control_ur_helper():
         ddynrec = DDynamicReconfigure("example_dyn_rec")
 
         # Add variables (name, description, default value, min, max, edit_method)
-        ddynrec.add_variable("ur_target_velocity", "float/double variable", 0.02, 0, 0.3)
+        ddynrec.add_variable("ur_target_velocity", "float/double variable", 0.05, 0, 0.3)
         ddynrec.add_variable("ur_velocity_limit", "float/double variable", 0.15, 0, 0.3)
         ddynrec.add_variable("ur_acceleration_limit", "float/double variable", 0.9, 0, 2.0)
         ddynrec.add_variable("Kpx", "float/double variable", -0.75, -1.0, 1.0)

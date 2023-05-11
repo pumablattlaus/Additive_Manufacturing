@@ -13,8 +13,8 @@ from copy import deepcopy
 class Control_ur():
     
     def config(self):
-        self.path_distance_between_points = 0.01
-        self.ur_scanner_angular_offset = rospy.get_param("~ur_scanner_angular_offset", 0.995 + math.pi/2)
+        
+        self.ur_scanner_angular_offset = rospy.get_param("~ur_scanner_angular_offset", -math.pi)
     
     
     def __init__(self):
@@ -59,6 +59,10 @@ class Control_ur():
     
     
     def control(self):
+                
+        # wait until tf is ready
+        self.listener.waitForTransform("map", "sensor_frame", rospy.Time.now(), rospy.Duration(10.0))
+                
                 
         self.time_old = rospy.Time.now()
         rate = rospy.Rate(100)
@@ -130,13 +134,27 @@ class Control_ur():
             ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y)
             ur_twist_command.linear.z = self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)
             
-            e_phi = ur_target_phi - mir_angle - current_tcp_angle + self.ur_scanner_angular_offset
+            # get sensor frame from keyence
+            try:
+                now = rospy.Time.now()
+                (trans,rot) = self.listener.lookupTransform("map", "sensor_frame", now - rospy.Duration(0.2))
+                print("sensor_rot:", rot)
+                sensor_angle = transformations.euler_from_quaternion(rot)[2]
+                e_phi = ur_target_phi - sensor_angle - math.pi/2
+                            
+            except:
+                rospy.logerr("Could not get transform from map to sensor_frame")
+                e_phi = 0.0
+                           
             if e_phi > math.pi:
                 e_phi -= 2*math.pi
             elif e_phi < -math.pi:
                 e_phi += 2*math.pi
-                
-            print("e_phi: " + str(e_phi))
+             
+            # print("ur_target_phi", ur_target_phi)
+            # print("mir_angle", mir_angle)
+            # print("winkel_diff", ur_target_phi - mir_angle + self.ur_scanner_angular_offset)
+            # print("e_phi: " + str(e_phi))
             ur_twist_command.angular.z = self.Kp_phi * e_phi
                                     
             # compute path speed
