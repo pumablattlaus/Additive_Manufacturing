@@ -88,27 +88,9 @@ class Control_ur():
             ur_path_velociy_global.linear.x = self.ur_target_velocity * math.cos(mir_angle)
             ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(mir_angle)            
             
-            # compute current tcp angle
-            ur_target_phi = transformations.euler_from_quaternion([ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w])[2]
-            current_tcp_angle = transformations.euler_from_quaternion([self.ur_pose.orientation.x, self.ur_pose.orientation.y, self.ur_pose.orientation.z, self.ur_pose.orientation.w])[2]
-                                    
-            # get sensor frame from keyence
-            try:
-                now = rospy.Time.now()
-                (trans,rot) = self.listener.lookupTransform("map", "sensor_frame", now - rospy.Duration(0.2))
-                print("sensor_rot:", rot)
-                sensor_angle = transformations.euler_from_quaternion(rot)[2]
-                e_phi = ur_target_phi - sensor_angle - math.pi/2
-                            
-            except:
-                rospy.logerr("Could not get transform from map to sensor_frame")
-                e_phi = 0.0
-                           
-            if e_phi > math.pi:
-                e_phi -= 2*math.pi
-            elif e_phi < -math.pi:
-                e_phi += 2*math.pi
-             
+            # compute e_phi based on the sensor frame and current tcp angle
+            e_phi = self.compute_e_phi(ur_target_pose_global)
+            
             # compute the control law
             ur_twist_command = Twist()
             ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x)
@@ -228,6 +210,28 @@ class Control_ur():
         ur_target_pose_local.position.y = -ur_target_pose_local.position.y
         return ur_target_pose_local
     
+    def compute_e_phi(self,ur_target_pose_global):
+        # compute current tcp angle
+        ur_target_phi = transformations.euler_from_quaternion([ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w])[2]
+                                
+        # get sensor frame from keyence
+        try:
+            now = rospy.Time.now()
+            (trans,rot) = self.listener.lookupTransform("map", "sensor_frame", now - rospy.Duration(0.2))
+            print("sensor_rot:", rot)
+            sensor_angle = transformations.euler_from_quaternion(rot)[2]
+            e_phi = ur_target_phi - sensor_angle - math.pi/2
+                        
+        except:
+            rospy.logerr("Could not get transform from map to sensor_frame")
+            e_phi = 0.0
+                        
+        if e_phi > math.pi:
+            e_phi -= 2*math.pi
+        elif e_phi < -math.pi:
+            e_phi += 2*math.pi
+        return e_phi
+        
     def compute_ur_target_pose_base(self,ur_target_pose_local):
         # add the transform between mir and ur_base_link
         ur_target_pose_base = Pose()
