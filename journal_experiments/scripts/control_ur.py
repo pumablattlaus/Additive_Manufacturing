@@ -68,53 +68,17 @@ class Control_ur():
         rate = rospy.Rate(100)
         while not rospy.is_shutdown():     
             # get target pose from path
-            ur_target_pose_global = Pose()
-            ur_target_pose_global.position.x = self.ur_path_array[self.path_index][0]
-            ur_target_pose_global.position.y = self.ur_path_array[self.path_index][1]
-            ur_target_pose_global.position.z = self.ur_path_array[self.path_index][2]
-            ur_target_pose_global.orientation.x = self.ur_path_array[self.path_index][3]
-            ur_target_pose_global.orientation.y = self.ur_path_array[self.path_index][4]
-            ur_target_pose_global.orientation.z = self.ur_path_array[self.path_index][5]
-            ur_target_pose_global.orientation.w = self.ur_path_array[self.path_index][6]
-            
-            # broadcast target pose
-            self.ur_target_pose_broadcaster.sendTransform((ur_target_pose_global.position.x, ur_target_pose_global.position.y, ur_target_pose_global.position.z), (ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w), rospy.Time.now(), "ur_global_target_pose", "map")
-                        
-            mir_target_pose_global = Pose()
-            mir_target_pose_global.position.x = self.mir_path_array[self.path_index][0]
-            mir_target_pose_global.position.y = self.mir_path_array[self.path_index][1]
-            
-            # # broadcast mir target pose
-            self.ur_target_pose_broadcaster.sendTransform((mir_target_pose_global.position.x, mir_target_pose_global.position.y, 0.0), (0.0, 0.0, 0.0, 1.0), rospy.Time.now(), "mir_global_target_pose", "map")
+            ur_target_pose_global = self.get_ur_target_pose_from_path()
+
+            # get mir pose
+            mir_target_pose_global = self.get_mir_target_pose_from_path()
+            mir_angle = transformations.euler_from_quaternion([self.mir_pose.orientation.x, self.mir_pose.orientation.y, self.mir_pose.orientation.z, self.mir_pose.orientation.w])[2]
             
             # compute ur target pose in base_link frame
-            x = ur_target_pose_global.position.x - self.mir_pose.position.x
-            y = ur_target_pose_global.position.y - self.mir_pose.position.y
-            #mir_angle = self.mir_path_array[self.path_index][2]
-            mir_angle = transformations.euler_from_quaternion([self.mir_pose.orientation.x, self.mir_pose.orientation.y, self.mir_pose.orientation.z, self.mir_pose.orientation.w])[2]
-
-            ur_target_pose_local = Pose()
-            ur_target_pose_local.position.x = x * math.cos(mir_angle) + y * math.sin(mir_angle) 
-            ur_target_pose_local.position.y = -x * math.sin(mir_angle) + y * math.cos(mir_angle)
-            ur_target_pose_local.position.z = ur_target_pose_global.position.z 
-            
-            # broadcast target pose
-            self.ur_target_pose_broadcaster.sendTransform((ur_target_pose_local.position.x, ur_target_pose_local.position.y, ur_target_pose_local.position.z), (ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w), rospy.Time.now(), "ur_local_target_pose", "mur620c/mir/base_link")
-            
-            
-            # UR is mounted backwards, so we need to invert the x-axis and y-axis
-            ur_target_pose_local.position.x = -ur_target_pose_local.position.x 
-            ur_target_pose_local.position.y = -ur_target_pose_local.position.y
-            
-            # add the transform between mir and ur_base_link
-            ur_target_pose_base = Pose()
-            ur_target_pose_base.position.x = ur_target_pose_local.position.x + self.mir_ur_transform.translation.x
-            ur_target_pose_base.position.y = ur_target_pose_local.position.y + self.mir_ur_transform.translation.y
-            ur_target_pose_base.position.z = ur_target_pose_local.position.z - self.mir_ur_transform.translation.z
-            ur_target_pose_base.orientation.w = 1.0
-
-            # broadcast target pose
-            self.ur_target_pose_broadcaster.sendTransform((ur_target_pose_base.position.x, ur_target_pose_base.position.y, ur_target_pose_base.position.z), (ur_target_pose_base.orientation.x, ur_target_pose_base.orientation.y, ur_target_pose_base.orientation.z, ur_target_pose_base.orientation.w), rospy.Time.now(), "target_point", self.ur_base_link_frame_id)
+            ur_target_pose_local = self.compute_ur_target_pose_local(ur_target_pose_global)
+                        
+            # subtract the transform between mir and ur_base_link
+            ur_target_pose_base = self.compute_ur_target_pose_base(ur_target_pose_local)
             
             # compute mir vel in global frame
             mir_vel_global = self.compute_mir_vel_global(self.mir_cmd_vel, mir_angle)
@@ -123,17 +87,11 @@ class Control_ur():
             ur_path_velociy_global = Twist()
             ur_path_velociy_global.linear.x = self.ur_target_velocity * math.cos(mir_angle)
             ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(mir_angle)            
-                              
+            
             # compute current tcp angle
             ur_target_phi = transformations.euler_from_quaternion([ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w])[2]
             current_tcp_angle = transformations.euler_from_quaternion([self.ur_pose.orientation.x, self.ur_pose.orientation.y, self.ur_pose.orientation.z, self.ur_pose.orientation.w])[2]
                                     
-            # compute the control law
-            ur_twist_command = Twist()
-            ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x)
-            ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y)
-            ur_twist_command.linear.z = self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)
-            
             # get sensor frame from keyence
             try:
                 now = rospy.Time.now()
@@ -151,10 +109,11 @@ class Control_ur():
             elif e_phi < -math.pi:
                 e_phi += 2*math.pi
              
-            # print("ur_target_phi", ur_target_phi)
-            # print("mir_angle", mir_angle)
-            # print("winkel_diff", ur_target_phi - mir_angle + self.ur_scanner_angular_offset)
-            # print("e_phi: " + str(e_phi))
+            # compute the control law
+            ur_twist_command = Twist()
+            ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x)
+            ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y)
+            ur_twist_command.linear.z = self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)
             ur_twist_command.angular.z = self.Kp_phi * e_phi
                                     
             # compute path speed
@@ -225,6 +184,61 @@ class Control_ur():
         for i in range(len(self.ur_path_array)-1):
             self.path_lengths.append(self.path_lengths[i] + math.sqrt((self.ur_path_array[i][0] - self.ur_path_array[i+1][0])**2 + (self.ur_path_array[i][1] - self.ur_path_array[i+1][1])**2 + (self.ur_path_array[i][2] - self.ur_path_array[i+1][2])**2))
             
+    def get_ur_target_pose_from_path(self):
+        ur_target_pose_global = Pose()
+        ur_target_pose_global.position.x = self.ur_path_array[self.path_index][0]
+        ur_target_pose_global.position.y = self.ur_path_array[self.path_index][1]
+        ur_target_pose_global.position.z = self.ur_path_array[self.path_index][2]
+        ur_target_pose_global.orientation.x = self.ur_path_array[self.path_index][3]
+        ur_target_pose_global.orientation.y = self.ur_path_array[self.path_index][4]
+        ur_target_pose_global.orientation.z = self.ur_path_array[self.path_index][5]
+        ur_target_pose_global.orientation.w = self.ur_path_array[self.path_index][6]
+        
+        # broadcast target pose
+        self.ur_target_pose_broadcaster.sendTransform((ur_target_pose_global.position.x, ur_target_pose_global.position.y, ur_target_pose_global.position.z), (ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w), rospy.Time.now(), "ur_global_target_pose", "map")
+        
+        return ur_target_pose_global
+    
+    def get_mir_target_pose_from_path(self):
+        mir_target_pose_global = Pose()
+        mir_target_pose_global.position.x = self.mir_path_array[self.path_index][0]
+        mir_target_pose_global.position.y = self.mir_path_array[self.path_index][1]
+        
+        # # broadcast mir target pose
+        self.ur_target_pose_broadcaster.sendTransform((mir_target_pose_global.position.x, mir_target_pose_global.position.y, 0.0), (0.0, 0.0, 0.0, 1.0), rospy.Time.now(), "mir_global_target_pose", "map")
+        return mir_target_pose_global
+    
+    def compute_ur_target_pose_local(self, ur_target_pose_global):
+        x = ur_target_pose_global.position.x - self.mir_pose.position.x
+        y = ur_target_pose_global.position.y - self.mir_pose.position.y
+        #mir_angle = self.mir_path_array[self.path_index][2]
+        mir_angle = transformations.euler_from_quaternion([self.mir_pose.orientation.x, self.mir_pose.orientation.y, self.mir_pose.orientation.z, self.mir_pose.orientation.w])[2]
+
+        ur_target_pose_local = Pose()
+        ur_target_pose_local.position.x = x * math.cos(mir_angle) + y * math.sin(mir_angle) 
+        ur_target_pose_local.position.y = -x * math.sin(mir_angle) + y * math.cos(mir_angle)
+        ur_target_pose_local.position.z = ur_target_pose_global.position.z 
+        
+        # broadcast target pose
+        self.ur_target_pose_broadcaster.sendTransform((ur_target_pose_local.position.x, ur_target_pose_local.position.y, ur_target_pose_local.position.z), (ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w), rospy.Time.now(), "ur_local_target_pose", "mur620c/mir/base_link")
+        
+        
+        # UR is mounted backwards, so we need to invert the x-axis and y-axis
+        ur_target_pose_local.position.x = -ur_target_pose_local.position.x 
+        ur_target_pose_local.position.y = -ur_target_pose_local.position.y
+        return ur_target_pose_local
+    
+    def compute_ur_target_pose_base(self,ur_target_pose_local):
+        # add the transform between mir and ur_base_link
+        ur_target_pose_base = Pose()
+        ur_target_pose_base.position.x = ur_target_pose_local.position.x + self.mir_ur_transform.translation.x
+        ur_target_pose_base.position.y = ur_target_pose_local.position.y + self.mir_ur_transform.translation.y
+        ur_target_pose_base.position.z = ur_target_pose_local.position.z - self.mir_ur_transform.translation.z
+        ur_target_pose_base.orientation.w = 1.0
+
+        # broadcast target pose
+        self.ur_target_pose_broadcaster.sendTransform((ur_target_pose_base.position.x, ur_target_pose_base.position.y, ur_target_pose_base.position.z), (ur_target_pose_base.orientation.x, ur_target_pose_base.orientation.y, ur_target_pose_base.orientation.z, ur_target_pose_base.orientation.w), rospy.Time.now(), "target_point", self.ur_base_link_frame_id)
+        return ur_target_pose_base
     
     
     def limit_velocity(self, ur_command, ur_command_old):
