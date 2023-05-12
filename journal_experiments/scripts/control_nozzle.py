@@ -5,7 +5,7 @@ import math
 from std_msgs.msg import Float32
 from sensor_msgs.msg import PointCloud2
 import sensor_msgs.point_cloud2 as pc2
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 class ControlNozzle():
     

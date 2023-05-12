@@ -35,6 +35,10 @@ class Control_ur_helper():
         
         self.base_node.path_index_timestamp = rospy.Time.now()
 
+        # get transform from sensor frame to ur tcp
+        self.base_node.listener.waitForTransform("sensor_frame", "mur620c/UR10_r/tool0", rospy.Time(0), rospy.Duration(4.0))
+        self.base_node.sensor_to_tcp = self.base_node.listener.lookupTransform("sensor_frame", "mur620c/UR10_r/tool0", rospy.Time(0))
+
         self.setup_ddynamic_reconfigure()
         rospy.Subscriber(self.base_node.ur_pose_topic, PoseStamped, self.ur_pose_callback)
         rospy.Subscriber(self.base_node.mir_cmd_vel_topic, Twist, self.mir_cmd_vel_callback)
@@ -74,7 +78,7 @@ class Control_ur_helper():
         ddynrec = DDynamicReconfigure("example_dyn_rec")
 
         # Add variables (name, description, default value, min, max, edit_method)
-        ddynrec.add_variable("ur_target_velocity", "float/double variable", 0.05, 0, 0.3)
+        ddynrec.add_variable("ur_target_velocity", "float/double variable", 0.03, 0, 0.3)
         ddynrec.add_variable("ur_velocity_limit", "float/double variable", 0.15, 0, 0.3)
         ddynrec.add_variable("ur_acceleration_limit", "float/double variable", 0.9, 0, 2.0)
         ddynrec.add_variable("Kpx", "float/double variable", -0.75, -1.0, 1.0)

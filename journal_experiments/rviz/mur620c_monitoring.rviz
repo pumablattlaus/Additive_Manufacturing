@@ -33,7 +33,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: PointCloud2
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -274,7 +274,7 @@ Visualization Manager:
         mur620c/UR10_r/shoulder_link:
           Value: false
         mur620c/UR10_r/tool0:
-          Value: false
+          Value: true
         mur620c/UR10_r/upper_arm_link:
           Value: false
         mur620c/UR10_r/wrist_1_link:
@@ -369,6 +369,10 @@ Visualization Manager:
           Value: false
         mur620c/target_point:
           Value: true
+        sensor_frame:
+          Value: false
+        sensor_optical_frame:
+          Value: false
         target_point:
           Value: false
         target_pose_0:
@@ -383,6 +387,8 @@ Visualization Manager:
           Value: false
         ur_target_pose:
           Value: false
+        world:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -423,18 +429,18 @@ Visualization Manager:
                       {}
                   mur620c/mir/camera_floor_left_depth_optical_frame:
                     {}
-                mur620c/mir/camera_floor_right_link:
-                  mur620c/mir/camera_floor_right_color_frame:
-                    mur620c/mir/camera_floor_right_color_optical_frame:
-                      {}
-                  mur620c/mir/camera_floor_right_depth_optical_frame:
-                    {}
                   mur620c/mir/camera_infra1_frame:
                     mur620c/mir/camera_infra1_optical_frame:
                       {}
                   mur620c/mir/camera_infra2_frame:
                     mur620c/mir/camera_infra2_optical_frame:
                       {}
+                mur620c/mir/camera_floor_right_link:
+                  mur620c/mir/camera_floor_right_color_frame:
+                    mur620c/mir/camera_floor_right_color_optical_frame:
+                      {}
+                  mur620c/mir/camera_floor_right_depth_optical_frame:
+                    {}
                 mur620c/mir/fl_caster_rotation_link:
                   mur620c/mir/fl_caster_wheel_link:
                     {}
@@ -470,6 +476,9 @@ Visualization Manager:
                                       mur620c/UR10_r/flange:
                                         mur620c/UR10_r/tool0:
                                           {}
+                        sensor_optical_frame:
+                          sensor_frame:
+                            {}
                         target_point:
                           {}
                         ur_target_pose:
@@ -483,6 +492,8 @@ Visualization Manager:
           target_pose_controll0:
             {}
           ur_global_target_pose:
+            {}
+          world:
             {}
         mocap:
           mur620c/target_point:
@@ -647,6 +658,11 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        sensor_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Name: RobotModel
       Robot Description: /lj_v7200_robot_description
       TF Prefix: ""
@@ -681,7 +697,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 2.7952489852905273
+      Distance: 2.102748155593872
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -689,17 +705,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 52.46753692626953
-        Y: 43.21139907836914
+        X: 52.59535598754883
+        Y: 43.36806106567383
         Z: -8.135128155117854e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.685398280620575
+      Pitch: 0.8503982424736023
       Target Frame: <Fixed Frame>
-      Yaw: 0.470398485660553
+      Yaw: 0.20040541887283325
     Saved: ~
 Window Geometry:
   Displays:

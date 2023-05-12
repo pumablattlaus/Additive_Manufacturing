@@ -62,17 +62,7 @@ class Control_ur():
                 
         # wait until tf is ready
         self.listener.waitForTransform("map", "sensor_frame", rospy.Time.now(), rospy.Duration(10.0))
-        
-        rate = rospy.Rate(100)
-        while not rospy.is_shutdown():
-            print(self.lateral_nozzle_pose_override)
-            ur_command = Twist()
-            ur_command.linear.x = 0.0
-            ur_command.linear.y = self.lateral_nozzle_pose_override * self.Kp_keyence
-            # publish command
-            self.ur_twist_publisher.publish(ur_command)
-            rate.sleep()
-        
+                
         self.time_old = rospy.Time.now()
         rate = rospy.Rate(100)
         while not rospy.is_shutdown():     
@@ -167,23 +157,25 @@ class Control_ur():
         self.mir_ur_transform.rotation.w = q[3]
     
     def compute_nozzle_correction(self, sensor_angle, mir_angle):
-        # get rotation matrix from sensor angle
-        R = transformations.rotation_matrix(sensor_angle, [0,0,1])
+        # compute the angle between the sensor and the ur tcp
+        sensor_tcp_angle = transformations.euler_from_quaternion([self.sensor_to_tcp[1][0],self.sensor_to_tcp[1][1],self.sensor_to_tcp[1][2],self.sensor_to_tcp[1][3]])[2]
+    
+        # compute ur tcp angle in ur base frame
+        ur_tcp_angle = transformations.euler_from_quaternion([self.ur_pose.orientation.x,self.ur_pose.orientation.y,self.ur_pose.orientation.z,self.ur_pose.orientation.w])[2]
         
-        # define nozzle velocity in the nozzle frame
-        nozzle_vel_local =  [0.0,self.lateral_nozzle_pose_override,0.0] 
+        # add the angles
+        sensor_angle_base = sensor_tcp_angle + ur_tcp_angle
         
-        # rotate nozzle velocity into the global frame
-        nozzle_vel_global = [0.0,0.0]
-        nozzle_vel_global[0] = R[0][0] * nozzle_vel_local[0] + R[0][1] * nozzle_vel_local[1] + R[0][2] * nozzle_vel_local[2]
-        nozzle_vel_global[1] = R[1][0] * nozzle_vel_local[0] + R[1][1] * nozzle_vel_local[1] + R[1][2] * nozzle_vel_local[2]
+        # compute rotation matrix from angle
+        R = transformations.rotation_matrix(sensor_angle_base, [0,0,1])
         
-        # rotate nozzle velocity into the mir frame
-        nozzle_vel_mir = [0.0,0.0]
-        nozzle_vel_mir[0] = nozzle_vel_global[0] * math.cos(mir_angle) - nozzle_vel_global[1] * math.sin(mir_angle)
-        nozzle_vel_mir[1] = nozzle_vel_global[0] * math.sin(mir_angle) + nozzle_vel_global[1] * math.cos(mir_angle)
-
-        return nozzle_vel_mir        
+        # rotate the lateral_nozzle_pose_override vector
+        lateral_nozzle_pose_override_vector = [0.0,self.lateral_nozzle_pose_override,0.0,1.0]
+        
+        x = R[0][0] * lateral_nozzle_pose_override_vector[0] + R[0][1] * lateral_nozzle_pose_override_vector[1] + R[0][2] * lateral_nozzle_pose_override_vector[2] + R[0][3] * lateral_nozzle_pose_override_vector[3]
+        y = R[1][0] * lateral_nozzle_pose_override_vector[0] + R[1][1] * lateral_nozzle_pose_override_vector[1] + R[1][2] * lateral_nozzle_pose_override_vector[2] + R[1][3] * lateral_nozzle_pose_override_vector[3]
+        
+        return [x,y]        
         
     
     def control_mir_velocity(self,target_pose = Pose()):
