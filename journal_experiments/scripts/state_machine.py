@@ -84,7 +84,7 @@ class Start_formation_controller(smach.State):
         # convert ur path to a list of poses 
         ur_path_array = []
         for pose in ur_path.poses:
-            ur_path_array.append([pose.pose.position.x, pose.pose.position.y , pose.pose.position.z, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])
+            ur_path_array.append([pose.pose.position.x, pose.pose.position.y , pose.pose.position.z + 0.072, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])
 
         # compute length of ur path and mir path to compare them
         mir_path_length = compute_path_length(path)

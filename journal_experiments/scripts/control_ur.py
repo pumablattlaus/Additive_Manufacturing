@@ -92,13 +92,11 @@ class Control_ur():
             
             # to correct errors in the scanner alingment, the robot has to move sideways
             [x,y] = self.compute_nozzle_correction(sensor_angle, mir_angle)
-            
-            print("x: ", x, "y: ", y)
-            
+                        
             # compute the control law
             ur_twist_command = Twist()
-            ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x) + self.Kp_keyence * x
-            ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y) + self.Kp_keyence * y
+            ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x) + self.Kp_lateral * x
+            ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y) + self.Kp_lateral * y
             ur_twist_command.linear.z = self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)
             ur_twist_command.angular.z = self.Kp_phi * e_phi
             

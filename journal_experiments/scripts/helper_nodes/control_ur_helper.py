@@ -65,7 +65,8 @@ class Control_ur_helper():
         self.base_node.Kp_mir = config["Kp_mir"]
         self.base_node.Kp_ffx = config["Kp_ffx"]
         self.base_node.Kp_ffy = config["Kp_ffy"]
-        self.base_node.Kp_keyence = config["Kp_keyence"]
+        self.base_node.Kp_lateral = config["Kp_lateral"]
+        self.base_node.Kp_feedrate = config["Kp_feedrate"]
         self.servo_position = config["servo_position"]
         if self.servo_position != self.servo_position_old:
             position_msg = Int16()
@@ -78,17 +79,18 @@ class Control_ur_helper():
         ddynrec = DDynamicReconfigure("example_dyn_rec")
 
         # Add variables (name, description, default value, min, max, edit_method)
-        ddynrec.add_variable("ur_target_velocity", "float/double variable", 0.03, 0, 0.3)
+        ddynrec.add_variable("ur_target_velocity", "float/double variable", 0.1, 0, 0.3)
         ddynrec.add_variable("ur_velocity_limit", "float/double variable", 0.15, 0, 0.3)
         ddynrec.add_variable("ur_acceleration_limit", "float/double variable", 0.9, 0, 2.0)
-        ddynrec.add_variable("Kpx", "float/double variable", -0.75, -1.0, 1.0)
-        ddynrec.add_variable("Kpy", "float/double variable", -0.75, -1.0, 1.0)
+        ddynrec.add_variable("Kpx", "float/double variable", -0.7, -1.0, 1.0)
+        ddynrec.add_variable("Kpy", "float/double variable", -0.7, -1.0, 1.0)
         ddynrec.add_variable("Kpz", "float/double variable", 0.50, -1.0, 1.0)
         ddynrec.add_variable("Kp_phi", "float/double variable", 0.2, -1.0, 1.0)
         ddynrec.add_variable("Kp_mir", "float/double variable", 0.1, -1.0, 1.0)
         ddynrec.add_variable("Kp_ffx", "float/double variable", 0.0, -1.0, 1.0)
         ddynrec.add_variable("Kp_ffy", "float/double variable", 0.0, -1.0, 1.0)
-        ddynrec.add_variable("Kp_keyence", "float/double variable", 0.0, -1.0, 1.0)
+        ddynrec.add_variable("Kp_lateral", "float/double variable", 0.1, -1.0, 1.0)
+        ddynrec.add_variable("Kp_feedrate", "float/double variable", 0.1, -1.0, 1.0)
         ddynrec.add_variable("servo_position", "integer variable", self.servo_position, 0, 1200)
         # ddynrec.add_variable("decimal", "float/double variable", -0.4, -1.0, 1.0)
         # ddynrec.add_variable("integer", "integer variable", 0, -1, 1)
