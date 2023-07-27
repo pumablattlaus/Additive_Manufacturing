@@ -20,7 +20,19 @@ relative_positions_x = rospy.get_param("~relative_positions_x", [0])
 relative_positions_y = rospy.get_param("~relative_positions_y", [0])
 state = ""
 
-# define state Parse_path
+# In this state the target paths for the MiR and UR are parsed
+class Parse_path(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['path_parsed'])
+
+    def execute(self, userdata):
+        rospy.loginfo('Parsing path')
+        
+        process = launch_ros_node("parse_path","journal_experiments","parse_path.py")
+        
+        return 'path_parsed'
+
+# In this state the MiR is moved to the first pose of the MiR path
 class Move_to_start(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['mir_in_start_pose'])
@@ -63,57 +75,7 @@ class Move_to_start(smach.State):
 
         return 'mir_in_start_pose'
 
-# define state Compute_trajectory
-class Start_formation_controller(smach.State):
-    def __init__(self):
-        smach.State.__init__(self, outcomes=['target_pose_reached', 'target_pose_not_reached'])
-
-    def execute(self, userdata):
-        state_publisher("moving_to_target_pose")
-
-        path_array = []
-        for pose in path.poses:
-            theta = transformations.euler_from_quaternion([pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])[2]
-            path_array.append([pose.pose.position.x, pose.pose.position.y , theta])
-
-        # launch the formation_controller node
-        process = launch_ros_node("control_mir","journal_experiments","control_mir.py", 
-                                  "", "", path_array=path_array, active_robots=active_robots,
-                                    robot_names=robot_names, relative_positions_x=relative_positions_x, relative_positions_y=relative_positions_y)
-
-        # convert ur path to a list of poses 
-        ur_path_array = []
-        for pose in ur_path.poses:
-            ur_path_array.append([pose.pose.position.x, pose.pose.position.y , pose.pose.position.z + 0.072, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])
-
-        # compute length of ur path and mir path to compare them
-        mir_path_length = compute_path_length(path)
-        ur_path_length = compute_path_length(ur_path)
-        length_factor = mir_path_length / ur_path_length
-
-        # launch the ur controller node
-        process = launch_ros_node("control_ur","journal_experiments","control_ur.py", "", "", ur_path_array=ur_path_array, length_factor=length_factor, mir_path_array = path_array)
-
-        while process.is_alive() and not rospy.is_shutdown():
-                rospy.sleep(0.1)
-                pass
-
-        state_publisher("target_pose_reached")
-        return 'target_pose_reached'
-        
-
-class Parse_path(smach.State):
-    def __init__(self):
-        smach.State.__init__(self, outcomes=['path_parsed'])
-
-    def execute(self, userdata):
-        rospy.loginfo('Parsing path')
-        
-        process = launch_ros_node("parse_path","journal_experiments","parse_path.py")
-        
-        return 'path_parsed'
-
-
+# In this state the UR is moved to the first pose of the UR path
 class Move_UR_to_start_pose(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['ur_in_start_pose'])
@@ -153,6 +115,49 @@ class Move_UR_to_start_pose(smach.State):
                 pass
         return 'ur_in_start_pose'
 
+
+# In this state the formation controller and UR controller are run
+class Start_formation_controller(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['target_pose_reached', 'target_pose_not_reached'])
+
+    def execute(self, userdata):
+        state_publisher("moving_to_target_pose")
+
+        path_array = []
+        for pose in path.poses:
+            theta = transformations.euler_from_quaternion([pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])[2]
+            path_array.append([pose.pose.position.x, pose.pose.position.y , theta])
+
+        # launch the formation_controller node
+        process = launch_ros_node("control_mir","journal_experiments","control_mir.py", 
+                                  "", "", path_array=path_array, active_robots=active_robots,
+                                    robot_names=robot_names, relative_positions_x=relative_positions_x, relative_positions_y=relative_positions_y)
+
+        # convert ur path to a list of poses 
+        ur_path_array = []
+        for pose in ur_path.poses:
+            ur_path_array.append([pose.pose.position.x, pose.pose.position.y , pose.pose.position.z + 0.072, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])
+
+        # compute length of ur path and mir path to compare them
+        mir_path_length = compute_path_length(path)
+        ur_path_length = compute_path_length(ur_path)
+        length_factor = mir_path_length / ur_path_length
+
+        # launch the ur controller node
+        process = launch_ros_node("control_ur","journal_experiments","control_ur.py", "", "", ur_path_array=ur_path_array, length_factor=length_factor, mir_path_array = path_array)
+
+        while process.is_alive() and not rospy.is_shutdown():
+                rospy.sleep(0.1)
+                pass
+
+        state_publisher("target_pose_reached")
+        return 'target_pose_reached'
+        
+
+
+
+# empty state
 class Follow_trajectory(smach.State): 
     def __init__(self):
         smach.State.__init__(self, outcomes=['done'])
