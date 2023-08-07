@@ -30,14 +30,14 @@ class Create_path():
         # create path between two points
         #dist = self.target_pose.position.x - self.start_pose.position.x
         path = Path()
-        path.header.frame_id = "mocap"
+        path.header.frame_id = "map"
         
         ur_path = Path()
-        ur_path.header.frame_id = "mocap"
+        ur_path.header.frame_id = "map"
         
         for i in range(0,int(self.dist*self.point_per_meter)):
             pose = PoseStamped()
-            pose.header.frame_id = "mocap"
+            pose.header.frame_id = "map"
             pose.header.stamp = rospy.Time.now()
             pose.header.seq = i
             # plan circle
@@ -58,18 +58,20 @@ class Create_path():
             
             
             ur_pose = PoseStamped()
-            ur_pose.header.frame_id = "mocap"
+            ur_pose.header.frame_id = "map"
             ur_pose.header.stamp = rospy.Time.now()
             ur_pose.header.seq = i
             ur_pose.pose.position.x = 1.0*math.cos(i/self.point_per_meter) + 0.05 * math.sin(6*i/self.point_per_meter)
             ur_pose.pose.position.y = 1.0*math.sin(i/self.point_per_meter)  + 0.05 * math.cos(6*i/self.point_per_meter)
+            ur_pose.pose.position.z = 0.5
             
             ur_path.poses.append(ur_pose)
         
+        rospy.sleep(1.1)
         self.path_pub_ur.publish(ur_path)
-        rospy.sleep(0.1)
+        rospy.sleep(1.1)
         self.path_pub.publish(path)
-        rospy.sleep(0.1)
+        rospy.sleep(1.1)
         print("path published")
         
         

@@ -28,7 +28,7 @@ class Parse_path(smach.State):
     def execute(self, userdata):
         rospy.loginfo('Parsing path')
         
-        process = launch_ros_node("parse_path","journal_experiments","parse_path.py")
+        process = launch_ros_node("create_path","journal_experiments","create_path.py")
         
         return 'path_parsed'
 
