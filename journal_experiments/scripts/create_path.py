@@ -64,13 +64,20 @@ class Create_path():
             ur_pose.pose.position.x = 1.0*math.cos(i/self.point_per_meter) + 0.05 * math.sin(6*i/self.point_per_meter)
             ur_pose.pose.position.y = 1.0*math.sin(i/self.point_per_meter)  + 0.05 * math.cos(6*i/self.point_per_meter)
             ur_pose.pose.position.z = 0.5
+
+            ur_pose.pose.orientation = pose.pose.orientation
             
             ur_path.poses.append(ur_pose)
         
         rospy.sleep(1.1)
-        self.path_pub_ur.publish(ur_path)
-        rospy.sleep(1.1)
+        rospy.loginfo("publishing MirPath")
         self.path_pub.publish(path)
+        # rospy.wait_for_message("/mir_path", Path)
+        rospy.sleep(1.1)
+        rospy.loginfo("publishing URPath")
+        self.path_pub_ur.publish(ur_path)
+        # rospy.wait_for_message("/ur_path", Path)
+        rospy.loginfo("paths published")
         rospy.sleep(1.1)
         print("path published")
         

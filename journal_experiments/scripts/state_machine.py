@@ -95,10 +95,11 @@ class Move_UR_to_start_pose(smach.State):
         # get transformation between ur and mir
         tf_listener = TransformListener()
         # wait for transform
-        tf_listener.waitForTransform(robot_names[0] + "/mir/base_link", robot_names[0] + "/UR10_r/base_link", rospy.Time(0), rospy.Duration(4.0))
-        lin, ang = tf_listener.lookupTransform(robot_names[0] + "/mir/base_link", robot_names[0] + "/UR10_r/base_link", rospy.Time(0))
+        tf_listener.waitForTransform(robot_names[0] + "/base_link", robot_names[0] + "/UR10_r/base_link", rospy.Time(0), rospy.Duration(4.0))
+        lin, ang = tf_listener.lookupTransform(robot_names[0] + "/base_link", robot_names[0] + "/UR10_r/base_link", rospy.Time(0))
         
-        ur_start_pose = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        rospy.loginfo(f"UR start pose orientation: {ur_path.poses[1].pose.orientation}")
+        ur_start_pose = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
         ur_start_pose[0] = relative_positions_x_local + lin[0]
         ur_start_pose[1] = relative_positions_y_local + lin[1]
         ur_start_pose[2] = ur_path.poses[1].pose.position.z - lin[2]

@@ -1,5 +1,13 @@
 <launch>
+<arg name="sim" default="true" />
 
+<group if="$(arg sim)">
+    <rosparam>
+        mur620c/mir_cmd_vel_topic: "/mur620c/mobile_base_controller/cmd_vel"
+        move_ur_to_start_pose/ur_command_topic: "/mur620c/UR10_l/twist_controller/command_safe"
+    </rosparam>
+    <node name="calibrated_pose_fake" pkg="journal_experiments" type="calibrated_pose_fake.py" output="screen" />
+</group>
 <!-- start the state machine -->
 <node pkg="journal_experiments" type="state_machine.py" name="state_machine" output="screen" />
 
