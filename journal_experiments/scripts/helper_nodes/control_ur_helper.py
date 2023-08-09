@@ -14,6 +14,7 @@ class Control_ur_helper():
         self.base_node.ur_pose_topic = rospy.get_param("~ur_pose_topic", "/mur620c/UR10_r/ur_calibrated_pose")
         self.base_node.mir_pose_topic = rospy.get_param("~mir_pose_topic", "/mur620c/robot_pose")
         self.lateral_nozzle_pose_override_topic = rospy.get_param("~lateral_nozzle_pose_override_topic", "/lateral_nozzle_pose_override")
+        self.base_node.lateral_nozzle_pose_override = 0.0
         self.base_node.ur_base_link_frame_id = rospy.get_param("~ur_base_link_frame_id", "mur620c/UR10_r/base_link")
         self.base_node.mir_cmd_vel_topic = rospy.get_param("~mir_cmd_vel_topic", "/mur620c/cmd_vel")
         self.base_node.tf_prefix = rospy.get_param("~tf_prefix", "mur620c/")

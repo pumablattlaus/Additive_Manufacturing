@@ -19,7 +19,7 @@ class Move_to_start_pose():
         self.linear_vel_limit = 0.08
         self.angular_vel_limit = 0.2
         self.linear_tolerance = 0.15
-        self.cmd_vel_topic = rospy.get_param("mir_cmd_vel_topic", "/mur620c/cmd_vel")
+        self.cmd_vel_topic = rospy.get_param("~mir_cmd_vel_topic", "/mur620c/cmd_vel")
         rospy.loginfo("cmd_vel_topic: %s", self.cmd_vel_topic)
         
         self.move_base_simple_goal_pub = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=1)
