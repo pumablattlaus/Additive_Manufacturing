@@ -2,8 +2,9 @@
 import rospy
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Pose
-import math
 import tf
+import numpy as np
+import math
 
 class Create_path():
 
@@ -50,10 +51,17 @@ class Create_path():
             next_pose.position.y = self.r_mir*math.sin((i+1)/self.point_per_meter)
             orientation = math.atan2(next_pose.position.y - pose.pose.position.y, next_pose.position.x - pose.pose.position.x)
             q = tf.transformations.quaternion_from_euler(0, 0, orientation)
-            pose.pose.orientation.x = q[0]
-            pose.pose.orientation.y = q[1]
-            pose.pose.orientation.z = q[2]
-            pose.pose.orientation.w = q[3]
+
+            # rotate around x so that the gripper is pointing down
+            q_rot = tf.transformations.quaternion_from_euler(np.pi, 0, 0)
+            q_ur=tf.transformations.quaternion_multiply(q_rot, q)
+            q_rot = tf.transformations.quaternion_from_euler(0, 0, np.pi/2)
+            q_ur=tf.transformations.quaternion_multiply(q_rot, q_ur)
+
+            pose.pose.orientation.x = q_ur[0]
+            pose.pose.orientation.y = q_ur[1]
+            pose.pose.orientation.z = q_ur[2]
+            pose.pose.orientation.w = q_ur[3]
             #pose.pose.position.x = self.start_pose.position.x + i/self.point_per_meter
             #pose.pose.position.y = pose.pose.position.x*0.5 + 0.5 * math.sin(pose.pose.position.x)
             path.poses.append(pose)

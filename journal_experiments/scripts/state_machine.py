@@ -110,24 +110,24 @@ class Move_UR_to_start_pose(smach.State):
         rospy.loginfo(f"UR start pose orientation: {ur_path.poses[1].pose.orientation}")
 
         # rotate around x so that the gripper is pointing down
-        q_rot = transformations.quaternion_from_euler(np.pi, 0, 0)
-        q_ur=transformations.quaternion_multiply(q_rot, ur_path.poses[1].pose.orientation.__reduce__()[2])
-        q_rot = transformations.quaternion_from_euler(0, 0, np.pi/2)
-        q_ur=transformations.quaternion_multiply(q_rot, q_ur)
-        q_ur = q_ur.tolist() # because param cant handle numpy types
+        # q_rot = transformations.quaternion_from_euler(np.pi, 0, 0)
+        # q_ur=transformations.quaternion_multiply(q_rot, ur_path.poses[1].pose.orientation.__reduce__()[2])
+        # q_rot = transformations.quaternion_from_euler(0, 0, np.pi/2)
+        # q_ur=transformations.quaternion_multiply(q_rot, q_ur)
+        # q_ur = q_ur.tolist() # because param cant handle numpy types
 
         ur_start_pose = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
         ur_start_pose[0] = -relative_positions_x_local - lin[0]
         ur_start_pose[1] = -relative_positions_y_local - lin[1]
         ur_start_pose[2] = ur_path.poses[1].pose.position.z - lin[2]
-        # ur_start_pose[3] = ur_path.poses[1].pose.orientation.x
-        # ur_start_pose[4] = ur_path.poses[1].pose.orientation.y
-        # ur_start_pose[5] = ur_path.poses[1].pose.orientation.z
-        # ur_start_pose[6] = ur_path.poses[1].pose.orientation.w
-        ur_start_pose[3] = q_ur[0]
-        ur_start_pose[4] = q_ur[1]
-        ur_start_pose[5] = q_ur[2]
-        ur_start_pose[6] = q_ur[3]
+        ur_start_pose[3] = ur_path.poses[1].pose.orientation.x
+        ur_start_pose[4] = ur_path.poses[1].pose.orientation.y
+        ur_start_pose[5] = ur_path.poses[1].pose.orientation.z
+        ur_start_pose[6] = ur_path.poses[1].pose.orientation.w
+        # ur_start_pose[3] = q_ur[0]
+        # ur_start_pose[4] = q_ur[1]
+        # ur_start_pose[5] = q_ur[2]
+        # ur_start_pose[6] = q_ur[3]
 
         # TODO: ADD MIR ANGLE TO ORIENTATION? (right now done by move_ur_start_pose.py)
         

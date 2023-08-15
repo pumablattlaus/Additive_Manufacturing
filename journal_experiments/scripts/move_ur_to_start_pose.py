@@ -2,8 +2,6 @@
 
 import rospy
 import tf
-from std_msgs.msg import Int32
-from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Pose, Twist
 import math
 from tf import transformations
@@ -76,9 +74,6 @@ class MoveURToStartPose():
             ur_start_pose_x = self.ur_start_pose.position.x
             ur_start_pose_y = self.ur_start_pose.position.y
             
-            # compute ur phi angle
-            ur_current_phi = transformations.euler_from_quaternion([self.ur_pose_current.orientation.x, self.ur_pose_current.orientation.y, self.ur_pose_current.orientation.z, self.ur_pose_current.orientation.w])[2]
-            ur_target_phi = transformations.euler_from_quaternion([self.ur_start_pose.orientation.x, self.ur_start_pose.orientation.y, self.ur_start_pose.orientation.z, self.ur_start_pose.orientation.w])[2]
             # compute all orientation errors:
             ur_current_euler = np.array(transformations.euler_from_quaternion([self.ur_pose_current.orientation.x, self.ur_pose_current.orientation.y, self.ur_pose_current.orientation.z, self.ur_pose_current.orientation.w]))
             ur_target_euler = np.array(transformations.euler_from_quaternion([self.ur_start_pose.orientation.x, self.ur_start_pose.orientation.y, self.ur_start_pose.orientation.z, self.ur_start_pose.orientation.w]))
@@ -95,11 +90,6 @@ class MoveURToStartPose():
                 elif e_angle < -math.pi:
                     ur_euler_error[i] = e_angle + 2 * math.pi
             ur_euler_error*=self.Kp_phi
-                        
-            # if e_phi > math.pi:
-            #     e_phi = e_phi - 2 * math.pi
-            # elif e_phi < -math.pi:
-            #     e_phi = e_phi + 2 * math.pi
             
             # calculate command
             self.ur_command.linear.x = e_x * self.Kpx
