@@ -19,3 +19,6 @@ roslaunch journal_experiments twist_sim.launch
   - lateral_nozzle_pose_override is set to 0 in control_ur
 - ur_control is not working correctly while printing
   - false transformations?
+
+## Future
+- All in namespace like move_to_start_pose

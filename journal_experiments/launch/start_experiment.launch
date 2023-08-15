@@ -3,7 +3,7 @@
 
 <group if="$(arg sim)">
     <rosparam>
-        move_to_start_pose/mir_cmd_vel_topic: "/mur620c/mobile_base_controller/cmd_vel"
+        mur620c/move_to_start_pose/mir_cmd_vel_topic: "/mur620c/mobile_base_controller/cmd_vel"
         move_ur_to_start_pose/ur_command_topic: "/mur620c/UR10_l/twist_controller/command_safe"
         move_ur_to_start_pose/ur_pose_topic: "/mur620c/UR10_l/ur_calibrated_pose"
         move_ur_to_start_pose/ur_base_link_frame_id: "mur620c/UR10_l/base_link"
