@@ -52,16 +52,11 @@ class Create_path():
             orientation = math.atan2(next_pose.position.y - pose.pose.position.y, next_pose.position.x - pose.pose.position.x)
             q = tf.transformations.quaternion_from_euler(0, 0, orientation)
 
-            # rotate around x so that the gripper is pointing down
-            q_rot = tf.transformations.quaternion_from_euler(np.pi, 0, 0)
-            q_ur=tf.transformations.quaternion_multiply(q_rot, q)
-            q_rot = tf.transformations.quaternion_from_euler(0, 0, np.pi/2)
-            q_ur=tf.transformations.quaternion_multiply(q_rot, q_ur)
-
-            pose.pose.orientation.x = q_ur[0]
-            pose.pose.orientation.y = q_ur[1]
-            pose.pose.orientation.z = q_ur[2]
-            pose.pose.orientation.w = q_ur[3]
+            pose.pose.orientation.x = q[0]
+            pose.pose.orientation.y = q[1]
+            pose.pose.orientation.z = q[2]
+            pose.pose.orientation.w = q[3]
+            
             #pose.pose.position.x = self.start_pose.position.x + i/self.point_per_meter
             #pose.pose.position.y = pose.pose.position.x*0.5 + 0.5 * math.sin(pose.pose.position.x)
             path.poses.append(pose)
@@ -75,7 +70,16 @@ class Create_path():
             ur_pose.pose.position.y = self.r_ur*math.sin((i+self.shift_ur)/self.point_per_meter)  + 0.05 * math.cos(6*i/self.point_per_meter)
             ur_pose.pose.position.z = 0.5
 
-            ur_pose.pose.orientation = pose.pose.orientation
+            # rotate around x so that the gripper is pointing down
+            q_rot = tf.transformations.quaternion_from_euler(np.pi, 0, 0)
+            q_ur=tf.transformations.quaternion_multiply(q_rot, q)
+            q_rot = tf.transformations.quaternion_from_euler(0, 0, np.pi/2)
+            q_ur=tf.transformations.quaternion_multiply(q_rot, q_ur)
+
+            ur_pose.pose.orientation.x = q_ur[0]
+            ur_pose.pose.orientation.y = q_ur[1]
+            ur_pose.pose.orientation.z = q_ur[2]
+            ur_pose.pose.orientation.w = q_ur[3]
             
             ur_path.poses.append(ur_pose)
         

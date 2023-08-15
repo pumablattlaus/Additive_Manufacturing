@@ -14,11 +14,10 @@ roslaunch journal_experiments twist_sim.launch
 ```
 
 ## Problems
+- Twist Controller: orientation control correct?
 
 - No PointCloud!
   - lateral_nozzle_pose_override is set to 0 in control_ur
-- ur_control is not working correctly while printing
-  - false transformations?
 
 ## Future
 - All in namespace like move_to_start_pose
