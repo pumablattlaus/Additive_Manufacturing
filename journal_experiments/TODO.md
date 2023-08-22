@@ -21,3 +21,6 @@ roslaunch journal_experiments twist_sim.launch
 
 ## Future
 - All in namespace like move_to_start_pose
+- Include speeds
+  - calc speed mir/ur in Parse Path
+  - change ur_control accordingly
