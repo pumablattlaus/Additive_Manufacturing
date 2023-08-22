@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.9
 
 import rospy
 import tf
@@ -9,6 +9,9 @@ from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Pose, Twist, Transform
 import math
 from copy import deepcopy
+import numpy as np
+
+from typing import Optional
 
 class Control_ur():
     
@@ -29,6 +32,7 @@ class Control_ur():
         # get path from parameter server
         self.ur_path_array = rospy.get_param("~ur_path_array")
         self.mir_path_array = rospy.get_param("~mir_path_array")
+        self.timestamps = rospy.get_param("~timestamps")
                 
         # get length factor
         self.length_factor = rospy.get_param("~length_factor")
@@ -36,13 +40,16 @@ class Control_ur():
         # compute the distance traveled along the path at each point
         self.compute_path_lengths()
         
+        # compute the velocities at each point from the timestamps
+        self.compute_path_velocities()
+        
         # get the transform between mir and ur
         self.mir_ur_transform = Transform()
         self.get_mir_ur_transform()
         
         # start moving the mir
         self.mir_target_velocity = Twist()
-        self.mir_target_velocity.linear.x = self.ur_target_velocity * self.length_factor * 0.80
+        self.mir_target_velocity.linear.x = self.path_velocities_ur[0] * self.length_factor * 0.80
         #self.mir_target_velocity_publisher.publish(self.mir_target_velocity)
         
         # wait for the subscriber to receive the first pose message
@@ -82,10 +89,11 @@ class Control_ur():
             # compute mir vel in global frame
             mir_vel_global = self.compute_mir_vel_global(self.mir_cmd_vel, mir_angle)
             
-            # compute the ur_path in global frame
-            ur_path_velociy_global = Twist()
-            ur_path_velociy_global.linear.x = self.ur_target_velocity * math.cos(mir_angle)
-            ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(mir_angle)            
+            # No sense? In compute_path_speed_and_distance() ur_target_velocity is computed again:
+            # # compute the ur_path in global frame
+            # ur_path_velociy_global = Twist()
+            # ur_path_velociy_global.linear.x = self.ur_target_velocity * math.cos(mir_angle)
+            # ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(mir_angle)            
             
             # compute e_phi based on the sensor frame and current tcp angle
             e_phi, sensor_angle = self.compute_e_phi(ur_target_pose_global)
@@ -95,23 +103,31 @@ class Control_ur():
                         
             # compute the control law
             ur_twist_command = Twist()
-            ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x) + self.Kp_lateral * x
-            ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y) + self.Kp_lateral * y
-            ur_twist_command.linear.z = self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)
-            ur_twist_command.angular.z = self.Kp_phi * e_phi
+            error_lin = np.array([self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x) + self.Kp_lateral * x,
+                                  self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y) + self.Kp_lateral * y,
+                                  self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)])
+            # To keep the given velocity, the error has to be normalized
+            error_lin_normal=error_lin/np.linalg.norm(error_lin)
+            ur_twist_command.linear.x = self.path_velocities_ur[self.path_index]*error_lin_normal[0]
+            ur_twist_command.linear.y = self.path_velocities_ur[self.path_index]*error_lin_normal[1]
+            ur_twist_command.linear.z = self.path_velocities_ur[self.path_index]*error_lin_normal[2]        
+            ur_twist_command.angular.z = self.Kp_phi * e_phi    # TODO: also other angles. To print in 3D orientation
             
+            # Alternative: v=(ur_vel_predicted+Kp*error)/2. with Kp being 1/dt
+            # --> at beginning of path (before movement) ur_vel_predicted=error/dt=error*Kp
+
             # compute path speed
-            path_speed = self.compute_path_speed_and_distance(ur_path_velociy_global)
+            rel_distance = self.compute_distance(self.path_velocities_ur[self.path_index])
             
-            # check if next path point is reached
-            if self.path_distance + path_speed > self.path_lengths[self.path_index]:
+            # check if next path point is reached. TODO: what if the path is longer because of deviations?
+            if self.path_distance > self.path_lengths[self.path_index]:
                 self.path_index += 1
                 path_index_msg = Int32()
                 path_index_msg.data = self.path_index
                 self.path_index_publisher.publish(path_index_msg)          
             
             # control mir velocity
-            self.control_mir_velocity(mir_target_pose_global)
+            self.control_mir_velocity()
             
             # limit velocity
             ur_command = self.limit_velocity(ur_twist_command, self.ur_command_old)
@@ -131,13 +147,16 @@ class Control_ur():
         
             
     
-    def compute_path_speed_and_distance(self,ur_command):
+    def compute_distance(self,path_speed: Optional[float]=None):
+        if path_speed is None:
+            path_speed = self.ur_target_velocity
         now = rospy.Time.now()
         dt = (now - self.time_old).to_sec()
-        path_speed = math.sqrt(ur_command.linear.x**2 + ur_command.linear.y**2) 
-        self.path_distance = self.path_distance + path_speed * dt
+        # path_speed = math.sqrt(ur_command.linear.x**2 + ur_command.linear.y**2)
+        rel_distance = path_speed * dt 
+        self.path_distance = self.path_distance + rel_distance
         self.time_old = now
-        return path_speed * dt
+        return rel_distance
        
     def get_mir_ur_transform(self):
         tf_listener = tf.TransformListener()
@@ -176,9 +195,12 @@ class Control_ur():
         return [x,y]        
         
     
-    def control_mir_velocity(self,target_pose = Pose()):
-        error = math.sqrt((target_pose.position.x - self.mir_pose.position.x)**2 + (target_pose.position.y - self.mir_pose.position.y)**2)
-        self.mir_target_velocity.linear.x = self.ur_target_velocity * self.length_factor * 0.80 + self.Kp_mir * error
+    def control_mir_velocity(self):
+        # error = math.sqrt((target_pose.position.x - self.mir_pose.position.x)**2 + (target_pose.position.y - self.mir_pose.position.y)**2)
+        # self.mir_target_velocity.linear.x = self.ur_target_velocity * self.length_factor * 0.80 + self.Kp_mir * error   # TODO: 0.80 is a magic number, kp_mir=1/dt?
+        self.mir_target_velocity = self.get_vel_timestamps_mir(self.mir_path_array,self.path_index,self.mir_pose)
+        # TODO: x/y transform!
+        # TODO: get_vel_timestamps: last vel as ff-control and then kp for the error?
         self.mir_target_velocity_publisher.publish(self.mir_target_velocity)
     
     def compute_path_lengths(self):
@@ -187,6 +209,21 @@ class Control_ur():
         
         for i in range(len(self.ur_path_array)-1):
             self.path_lengths.append(self.path_lengths[i] + math.sqrt((self.ur_path_array[i][0] - self.ur_path_array[i+1][0])**2 + (self.ur_path_array[i][1] - self.ur_path_array[i+1][1])**2 + (self.ur_path_array[i][2] - self.ur_path_array[i+1][2])**2))
+    
+    def compute_path_velocities(self):
+        self.path_velocities_ur = [1e-20]   # to make sure next index is taken at comparing path_distance > self.path_lengths
+        # self.path_velocities_mir = []
+        
+        for idx in range(len(self.ur_path_array)-1):
+            dt = self.timestamps[idx+1] - self.timestamps[idx]
+            ds = math.sqrt((self.ur_path_array[idx+1][0] - self.ur_path_array[idx][0])**2 + (self.ur_path_array[idx+1][1] - self.ur_path_array[idx][1])**2 + (self.ur_path_array[idx+1][2] - self.ur_path_array[idx][2])**2)
+            if dt != 0.0:
+                self.path_velocities_ur.append(ds/dt)
+            else:
+                self.path_velocities_ur.append(0.0)
+            
+            # TODO: mir path velocities
+        
             
     def get_ur_target_pose_from_path(self):
         ur_target_pose_global = Pose()
@@ -300,7 +337,41 @@ class Control_ur():
 
         return ur_command
     
-    
+    def get_vel_timestamps_mir(self, path_array: np.ndarray[float], index: int, cur_pos: Optional[Pose]=None) -> Twist:
+        """time from timestamp and last timestamp, velocity by dist pos to cur_pos.
+        TODO: x/y transform!
+        TODO: last vel as ff-control and then kp for the error?
+
+        Args:
+            path (Path): path of mir: X,Y,PHI
+            index (int): path index of next pose
+            cur_pos (Optional[Pose], optional): for current pose. Otrherwise last pose of path. Defaults to None.
+
+        Returns:
+            Twist: velocity
+        """
+        p1 = path_array[index]
+        p0 = path_array[index-1]
+        if cur_pos is not None:
+            # p0.pose = cur_pos
+            p0 = cur_pos.position.x, cur_pos.position.y, cur_pos.position.z
+        dt = (self.timestamps[index] - self.timestamps[index-1])
+        vel = Twist()
+        dist = (p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2])
+        
+        # distance of rotation for UR:
+        # q_inv = transformations.quaternion_conjugate([p0.pose.orientation.x, p0.pose.orientation.y, p0.pose.orientation.z, p0.pose.orientation.w])
+        # q_rot = transformations.quaternion_multiply([p1.pose.orientation.x, p1.pose.orientation.y, p1.pose.orientation.z, p1.pose.orientation.w], q_inv)
+        # euler_rot=transformations.euler_from_quaternion(q_rot)
+        # vel.angular.x = euler_rot[0] / dt.to_sec()
+        # vel.angular.y = euler_rot[1] / dt.to_sec()
+        # vel.angular.z = euler_rot[2] / dt.to_sec()
+        
+        if dt == 0:
+            dt = 1e-20
+        vel.linear.x = math.sqrt(dist[0]**2 + dist[1]**2) / dt
+        # vel.angular.z = dist[2] / dt
+        return vel
     
     
     

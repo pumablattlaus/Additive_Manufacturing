@@ -160,16 +160,18 @@ class Start_formation_controller(smach.State):
 
         # convert ur path to a list of poses 
         ur_path_array = []
+        timestamps = []
         for pose in ur_path.poses:
             ur_path_array.append([pose.pose.position.x, pose.pose.position.y , pose.pose.position.z + 0.072, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])
-
+            timestamps.append(pose.header.stamp.to_sec())
+            
         # compute length of ur path and mir path to compare them
         mir_path_length = compute_path_length(path)
         ur_path_length = compute_path_length(ur_path)
         length_factor = mir_path_length / ur_path_length
 
         # launch the ur controller node
-        process = launch_ros_node("control_ur","journal_experiments","control_ur.py", "", "", ur_path_array=ur_path_array, length_factor=length_factor, mir_path_array = path_array)
+        process = launch_ros_node("control_ur","journal_experiments","control_ur.py", "", "", ur_path_array=ur_path_array, length_factor=length_factor, mir_path_array = path_array, timestamps=timestamps)
 
         while process.is_alive() and not rospy.is_shutdown():
                 rospy.sleep(0.1)
