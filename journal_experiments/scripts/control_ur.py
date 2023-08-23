@@ -88,11 +88,12 @@ class Control_ur():
             mir_vel_global = self.compute_mir_vel_global(self.mir_cmd_vel, mir_angle)
             
             # compute the ur_path in global frame
-            ur_path_velociy_global = Twist()
-            # ur_path_velociy_global.linear.x = self.ur_target_velocity * math.cos(mir_angle)
-            # ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(mir_angle)
-            ur_path_velociy_global.linear.x = self.path_velocities_ur[self.path_index] * math.cos(mir_angle)
-            ur_path_velociy_global.linear.y = self.path_velocities_ur[self.path_index]  * math.sin(mir_angle)                       
+            # No sense? In compute_path_speed_and_distance() ur_target_velocity is computed again:
+            # ur_path_velociy_global = Twist()
+            # # ur_path_velociy_global.linear.x = self.ur_target_velocity * math.cos(mir_angle)
+            # # ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(mir_angle)
+            # ur_path_velociy_global.linear.x = self.path_velocities_ur[self.path_index] * math.cos(mir_angle)
+            # ur_path_velociy_global.linear.y = self.path_velocities_ur[self.path_index]  * math.sin(mir_angle)                       
             
             # compute e_phi based on the sensor frame and current tcp angle
             e_phi, sensor_angle = self.compute_e_phi(ur_target_pose_global)
@@ -108,10 +109,10 @@ class Control_ur():
             ur_twist_command.angular.z = self.Kp_phi * e_phi
             
             # compute path speed
-            path_speed = self.compute_path_speed_and_distance(ur_path_velociy_global)
+            rel_distance = self.compute_distance(self.path_velocities_ur[self.path_index])
             
-            # check if next path point is reached
-            if self.path_distance + path_speed > self.path_lengths[self.path_index]:
+            # check if next path point is reached. TODO: what if the path is longer because of deviations?
+            if self.path_distance > self.path_lengths[self.path_index]:
                 self.path_index += 1
                 path_index_msg = Int32()
                 path_index_msg.data = self.path_index
@@ -137,14 +138,16 @@ class Control_ur():
         return mir_vel_global
         
             
-    
-    def compute_path_speed_and_distance(self,ur_command):
+    def compute_distance(self,path_speed: Optional[float]=None):
+        if path_speed is None:
+            path_speed = self.ur_target_velocity
         now = rospy.Time.now()
         dt = (now - self.time_old).to_sec()
-        path_speed = math.sqrt(ur_command.linear.x**2 + ur_command.linear.y**2) 
-        self.path_distance = self.path_distance + path_speed * dt
+        # path_speed = math.sqrt(ur_command.linear.x**2 + ur_command.linear.y**2)
+        rel_distance = path_speed * dt 
+        self.path_distance = self.path_distance + rel_distance
         self.time_old = now
-        return path_speed * dt
+        return rel_distance
        
     def get_mir_ur_transform(self):
         tf_listener = tf.TransformListener()
