@@ -13,6 +13,8 @@ wait for URs to reach home pose, then:
 roslaunch journal_experiments twist_sim.launch
 ```
 
+Start Ur is at (52.411910, 43.385410)
+
 ## Problems
 - Twist Controller: orientation control correct?
 
@@ -24,3 +26,4 @@ roslaunch journal_experiments twist_sim.launch
 - Include speeds
   - calc speed mir/ur in Parse Path
   - change ur_control accordingly
+- Path publisher for viewing (less points)

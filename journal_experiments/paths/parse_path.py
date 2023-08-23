@@ -3,6 +3,7 @@
 from pathlib import Path
 import rospy
 import math
+import numpy as np
 import tf
 from mirX import mirX
 from mirY import mirY
@@ -10,6 +11,8 @@ from mirY import mirY
 from toolX import toolX
 from toolY import toolY
 from toolZ import toolZ
+
+from timeStamp import timeStamp
 
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
@@ -20,6 +23,8 @@ mir_y= mirY()
 wall_x = toolX()
 wall_y = toolY()
 wall_z = toolZ()
+
+time_stamps = timeStamp()
 
 #print(mir_y)
 
@@ -79,6 +84,8 @@ for i in range(0,len(mir_x)-1): #len(robot0_xhat)
     mir_path.poses[i].pose.orientation.y = mir_path_point.pose.orientation.y
     mir_path.poses[i].pose.orientation.z = mir_path_point.pose.orientation.z
     mir_path.poses[i].pose.orientation.w = mir_path_point.pose.orientation.w
+    
+    mir_path.poses[i].header.stamp = rospy.Duration(time_stamps[i])
 
 
 for i in range(0,len(wall_x)-1): #len(robot0_xhat)
@@ -89,20 +96,29 @@ for i in range(0,len(wall_x)-1): #len(robot0_xhat)
     # add orientation
     orientation = math.atan2(wall_y[i+1]-wall_y[i], wall_x[i+1]-wall_x[i])
     q = tf.transformations.quaternion_from_euler(0, 0, orientation)
+    
+    #  rotate around x so that the gripper is pointing down
+    q_rot = tf.transformations.quaternion_from_euler(np.pi, 0, 0)
+    q_ur=tf.transformations.quaternion_multiply(q_rot, q)
+    q_rot = tf.transformations.quaternion_from_euler(0, 0, np.pi/2)
+    q_ur=tf.transformations.quaternion_multiply(q_rot, q_ur)
 
     ur_path.poses[i].pose.position.x = ur_path_point.pose.position.x
     ur_path.poses[i].pose.position.y = ur_path_point.pose.position.y
     ur_path.poses[i].pose.position.z = ur_path_point.pose.position.z
-    ur_path.poses[i].pose.orientation.x = q[0]
-    ur_path.poses[i].pose.orientation.y = q[1]
-    ur_path.poses[i].pose.orientation.z = q[2]
-    ur_path.poses[i].pose.orientation.w = q[3]
+    ur_path.poses[i].pose.orientation.x = q_ur[0]
+    ur_path.poses[i].pose.orientation.y = q_ur[1]
+    ur_path.poses[i].pose.orientation.z = q_ur[2]
+    ur_path.poses[i].pose.orientation.w = q_ur[3]
+    
+    ur_path.poses[i].header.stamp = rospy.Duration(time_stamps[i])
     
 
 rospy.sleep(2)
 mir_pub.publish(mir_path)
 rospy.sleep(5)
 ur_pub.publish(ur_path)
+rospy.loginfo("paths published")
 rospy.sleep(3)
 
 

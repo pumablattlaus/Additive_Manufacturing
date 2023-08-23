@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.9
 
 import rospy
 import tf
@@ -9,6 +9,8 @@ from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Pose, Twist, Transform
 import math
 from copy import deepcopy
+import numpy as np
+from typing import Optional
 
 class Control_ur():
     
@@ -29,12 +31,15 @@ class Control_ur():
         # get path from parameter server
         self.ur_path_array = rospy.get_param("~ur_path_array")
         self.mir_path_array = rospy.get_param("~mir_path_array")
+        self.timestamps = rospy.get_param("~timestamps")
                 
         # get length factor
         self.length_factor = rospy.get_param("~length_factor")
         
         # compute the distance traveled along the path at each point
         self.compute_path_lengths()
+        
+        self.compute_path_velocities()
         
         # get the transform between mir and ur
         self.mir_ur_transform = Transform()
@@ -84,8 +89,10 @@ class Control_ur():
             
             # compute the ur_path in global frame
             ur_path_velociy_global = Twist()
-            ur_path_velociy_global.linear.x = self.ur_target_velocity * math.cos(mir_angle)
-            ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(mir_angle)            
+            # ur_path_velociy_global.linear.x = self.ur_target_velocity * math.cos(mir_angle)
+            # ur_path_velociy_global.linear.y = self.ur_target_velocity * math.sin(mir_angle)
+            ur_path_velociy_global.linear.x = self.path_velocities_ur[self.path_index] * math.cos(mir_angle)
+            ur_path_velociy_global.linear.y = self.path_velocities_ur[self.path_index]  * math.sin(mir_angle)                       
             
             # compute e_phi based on the sensor frame and current tcp angle
             e_phi, sensor_angle = self.compute_e_phi(ur_target_pose_global)
@@ -300,7 +307,23 @@ class Control_ur():
 
         return ur_command
     
-    
+    def compute_path_velocities(self):
+        # self.path_velocities_ur = [1e-20]   # to make sure next index is taken at comparing path_distance > self.path_lengths
+        self.path_velocities_ur = [self.ur_target_velocity]
+        # self.path_velocities_mir = []
+
+        for idx in range(len(self.ur_path_array)-1):
+            dt = self.timestamps[idx+1] - self.timestamps[idx]
+            ds = math.sqrt((self.ur_path_array[idx+1][0] - self.ur_path_array[idx][0])**2 + (self.ur_path_array[idx+1][1] - self.ur_path_array[idx][1])**2 + (self.ur_path_array[idx+1][2] - self.ur_path_array[idx][2])**2)
+            if dt != 0.0:
+                self.path_velocities_ur.append(ds/dt)
+            else:
+                # rospy.logwarn("dt = 0.0 -> setting velocity to last velocity #0.0")
+                self.path_velocities_ur.append(self.path_velocities_ur[-1])
+            
+            # self.path_velocities_ur.append(self.ur_target_velocity)
+
+            # TODO: mir path velocities
     
     
     

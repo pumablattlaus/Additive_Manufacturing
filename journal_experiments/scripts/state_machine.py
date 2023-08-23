@@ -30,6 +30,7 @@ class Parse_path(smach.State):
         rospy.loginfo('Parsing path')
         
         process = launch_ros_node("create_path","journal_experiments","create_path.py")
+        # process = launch_ros_node("parse_path_trafo","journal_experiments","parse_path_trafo.py")
         
         return 'path_parsed'
 
@@ -160,16 +161,20 @@ class Start_formation_controller(smach.State):
 
         # convert ur path to a list of poses 
         ur_path_array = []
+        timestamps = []
         for pose in ur_path.poses:
             ur_path_array.append([pose.pose.position.x, pose.pose.position.y , pose.pose.position.z + 0.072, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])
-
+            timestamps.append(pose.header.stamp.to_sec())
+            if pose.header.stamp.to_sec() == 0.0:
+                rospy.logwarn("timestamp = 0.0")
+        
         # compute length of ur path and mir path to compare them
         mir_path_length = compute_path_length(path)
         ur_path_length = compute_path_length(ur_path)
         length_factor = mir_path_length / ur_path_length
 
         # launch the ur controller node
-        process = launch_ros_node("control_ur","journal_experiments","control_ur.py", "", "", ur_path_array=ur_path_array, length_factor=length_factor, mir_path_array = path_array)
+        process = launch_ros_node("control_ur","journal_experiments","control_ur.py", "", "", ur_path_array=ur_path_array, length_factor=length_factor, mir_path_array = path_array, timestamps=timestamps)
 
         while process.is_alive() and not rospy.is_shutdown():
                 rospy.sleep(0.1)

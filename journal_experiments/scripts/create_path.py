@@ -16,6 +16,7 @@ class Create_path():
         self.r_ur = 1.0
         self.r_mir=2.0
         self.shift_ur = 0.1 # in meter
+        self.dt = 10/self.point_per_meter # seconds between points
         pass
     
     def main(self):
@@ -57,6 +58,8 @@ class Create_path():
             pose.pose.orientation.z = q[2]
             pose.pose.orientation.w = q[3]
             
+            pose.header.stamp = rospy.Duration(self.dt*i)
+            
             #pose.pose.position.x = self.start_pose.position.x + i/self.point_per_meter
             #pose.pose.position.y = pose.pose.position.x*0.5 + 0.5 * math.sin(pose.pose.position.x)
             path.poses.append(pose)
@@ -80,6 +83,8 @@ class Create_path():
             ur_pose.pose.orientation.y = q_ur[1]
             ur_pose.pose.orientation.z = q_ur[2]
             ur_pose.pose.orientation.w = q_ur[3]
+            
+            ur_pose.header.stamp = rospy.Duration(self.dt*i)
             
             ur_path.poses.append(ur_pose)
         
