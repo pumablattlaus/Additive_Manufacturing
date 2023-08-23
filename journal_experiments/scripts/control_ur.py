@@ -149,8 +149,8 @@ class Control_ur():
     def get_mir_ur_transform(self):
         tf_listener = tf.TransformListener()
         # wait for transform
-        tf_listener.waitForTransform(self.tf_prefix + "base_link", self.tf_prefix + "UR10_l/base_link", rospy.Time(0), rospy.Duration(4.0))
-        lin, ang = tf_listener.lookupTransform(self.tf_prefix + "base_link", self.tf_prefix + "UR10_l/base_link", rospy.Time(0))
+        tf_listener.waitForTransform(self.tf_prefix + "base_link", self.tf_prefix + self.ur_prefix + "/base_link", rospy.Time(0), rospy.Duration(4.0))
+        lin, ang = tf_listener.lookupTransform(self.tf_prefix + "base_link", self.tf_prefix + self.ur_prefix + "/base_link", rospy.Time(0))
         
         self.mir_ur_transform.translation.x = lin[0]
         self.mir_ur_transform.translation.y = lin[1]

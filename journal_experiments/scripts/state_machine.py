@@ -15,10 +15,12 @@ import numpy as np
 # define global variables
 path = Path();
 ur_path = Path();
-active_robots = rospy.get_param("~active_robots", 1)
-robot_names = rospy.get_param("~robot_names", ["mur620c"])
-relative_positions_x = rospy.get_param("~relative_positions_x", [0])
-relative_positions_y = rospy.get_param("~relative_positions_y", [0])
+# No private parameters are used because there is nodename yet
+active_robots = rospy.get_param("/state_machine/active_robots", 1)
+robot_names = rospy.get_param("/state_machine/robot_names", ["mur620c"])
+ur_prefixes = rospy.get_param("/state_machine/ur_prefixes", ["UR10_l"])
+relative_positions_x = rospy.get_param("/state_machine/relative_positions_x", [0])
+relative_positions_y = rospy.get_param("/state_machine/relative_positions_y", [0])
 state = ""
 
 # In this state the target paths for the MiR and UR are parsed
@@ -105,10 +107,12 @@ class Move_UR_to_start_pose(smach.State):
         # get transformation between ur and mir
         tf_listener = TransformListener()
         # wait for transform
-        tf_listener.waitForTransform(robot_names[0] + "/base_link", robot_names[0] + "/UR10_l/base_link", rospy.Time(0), rospy.Duration(4.0))
-        lin, ang = tf_listener.lookupTransform(robot_names[0] + "/base_link", robot_names[0] + "/UR10_l/base_link", rospy.Time(0))
+        tf_listener.waitForTransform(robot_names[0] + "/base_link", robot_names[0] + "/"+ur_prefixes[0]+"/base_link", rospy.Time(0), rospy.Duration(4.0))
+        lin, ang = tf_listener.lookupTransform(robot_names[0] + "/base_link", robot_names[0] + "/"+ur_prefixes[0]+"/base_link", rospy.Time(0))
 
         rospy.loginfo(f"UR start pose orientation: {ur_path.poses[1].pose.orientation}")
+        rospy.loginfo(f"ur_prefix is {ur_prefixes[0]}")
+        rospy.sleep(1.0)
 
         # rotate around x so that the gripper is pointing down
         # q_rot = transformations.quaternion_from_euler(np.pi, 0, 0)

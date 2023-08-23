@@ -13,7 +13,7 @@ wait for URs to reach home pose, then:
 roslaunch journal_experiments twist_sim.launch
 ```
 
-Start Ur is at (52.411910, 43.385410)
+Start Ur is at (52.411910, 43.385410) for trafo (set rostopic pub /wall_frame_base)
 
 ## Problems
 - Twist Controller: orientation control correct?
@@ -22,8 +22,10 @@ Start Ur is at (52.411910, 43.385410)
   - lateral_nozzle_pose_override is set to 0 in control_ur
 
 ## Future
+- control_ur in vel_not_working is probably all correct --> implement in current control_ur
 - All in namespace like move_to_start_pose
 - Include speeds
-  - calc speed mir/ur in Parse Path
-  - change ur_control accordingly
+  - calc speed mir like UR
+- Implement Scale_Map
 - Path publisher for viewing (less points)
+  - erledigt: **pub_paths_view.py**

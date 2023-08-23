@@ -22,6 +22,7 @@
         control_ur/mir_pose_topic : /mur620c/mir_pose_simple
         control_ur/ur_pose_topic: "/mur620c/$(arg ur_prefix)/ur_calibrated_pose"
         control_ur/ur_base_link_frame_id: "mur620c/$(arg ur_prefix)/base_link"
+        control_ur/ur_prefix: "$(arg ur_prefix)"
 
         control_mir/mir_cmd_vel_topic_relative: "mobile_base_controller/cmd_vel"
 
@@ -33,7 +34,11 @@
     
 </group>
 <!-- start the state machine -->
-<node pkg="journal_experiments" type="state_machine.py" name="state_machine" output="screen" />
+<node pkg="journal_experiments" type="state_machine.py" name="state_machine" output="screen">
+    <rosparam subst_value="true">
+        ur_prefixes: ["$(arg ur_prefix)"]
+    </rosparam>
+</node>
 
 
 

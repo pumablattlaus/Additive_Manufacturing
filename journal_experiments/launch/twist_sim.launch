@@ -14,7 +14,7 @@
         <param name="group_name" type="string" value="UR_arm_$(arg ur_side)" />
 
         <remap from="twist_command" to="/mur620c/$(arg ur_prefix)/twist_controller/command_safe" />
-        <remap from="/mur620c/UR10_l/joint_group_vel_controller/command" to="/mur620c/joint_group_vel_controller_$(arg ur_side)/unsafe/command" />
+        <remap from="/mur620c/$(arg ur_prefix)/joint_group_vel_controller/command" to="/mur620c/joint_group_vel_controller_$(arg ur_side)/unsafe/command" />
     </node>
     </group>
 
