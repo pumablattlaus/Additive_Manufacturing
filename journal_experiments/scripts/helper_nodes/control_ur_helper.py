@@ -87,7 +87,7 @@ class Control_ur_helper():
         ddynrec.add_variable("Kpx", "float/double variable", -0.7, -1.0, 1.0)
         ddynrec.add_variable("Kpy", "float/double variable", -0.7, -1.0, 1.0)
         ddynrec.add_variable("Kpz", "float/double variable", 0.50, -1.0, 1.0)
-        ddynrec.add_variable("Kp_phi", "float/double variable", 0.2, -1.0, 1.0)
+        ddynrec.add_variable("Kp_phi", "float/double variable", 0.0002, -1.0, 1.0)
         ddynrec.add_variable("Kp_mir", "float/double variable", 0.1, -1.0, 1.0)
         ddynrec.add_variable("Kp_ffx", "float/double variable", 0.0, -1.0, 1.0)
         ddynrec.add_variable("Kp_ffy", "float/double variable", 0.0, -1.0, 1.0)

@@ -47,7 +47,7 @@ class Control_ur():
         
         # start moving the mir
         self.mir_target_velocity = Twist()
-        self.mir_target_velocity.linear.x = self.ur_target_velocity * self.length_factor * 0.80
+        self.mir_target_velocity.linear.x = self.path_velocities_ur[0] * self.length_factor * 0.80
         #self.mir_target_velocity_publisher.publish(self.mir_target_velocity)
         
         # wait for the subscriber to receive the first pose message
@@ -103,10 +103,24 @@ class Control_ur():
                         
             # compute the control law
             ur_twist_command = Twist()
-            ur_twist_command.linear.x = self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x) + self.Kp_lateral * x
-            ur_twist_command.linear.y = self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y) + self.Kp_lateral * y
-            ur_twist_command.linear.z = self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)
-            ur_twist_command.angular.z = self.Kp_phi * e_phi
+            error_lin = np.array([self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x) + self.Kp_lateral * x,
+                                  self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y) + self.Kp_lateral * y,
+                                  self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)])
+            # To keep the given velocity, the error has to be normalized
+            error_lin_normal=error_lin/np.linalg.norm(error_lin)
+            ur_twist_command.linear.x = self.path_velocities_ur[self.path_index]*error_lin_normal[0]
+            ur_twist_command.linear.y = self.path_velocities_ur[self.path_index]*error_lin_normal[1]
+            ur_twist_command.linear.z = self.path_velocities_ur[self.path_index]*error_lin_normal[2]
+            
+            # ur_twist_command.angular.z = self.Kp_phi * e_phi    # TODO: also other angles. To print in 3D orientation
+            # distance of rotation for UR:
+            q_inv = transformations.quaternion_conjugate([self.ur_pose.orientation.x, self.ur_pose.orientation.y, self.ur_pose.orientation.z, self.ur_pose.orientation.w])
+            q_rot = transformations.quaternion_multiply([ur_target_pose_base.orientation.x, ur_target_pose_base.orientation.y, ur_target_pose_base.orientation.z, ur_target_pose_base.orientation.w], q_inv)
+            euler_rot=transformations.euler_from_quaternion(q_rot)
+            dt = self.timestamps[self.path_index+1] - self.timestamps[self.path_index]
+            ur_twist_command.angular.x = euler_rot[0] / dt * self.Kp_phi
+            ur_twist_command.angular.z = euler_rot[2] / dt * self.Kp_phi
+            ur_twist_command.angular.y = euler_rot[1] / dt * self.Kp_phi
             
             # compute path speed
             rel_distance = self.compute_distance(self.path_velocities_ur[self.path_index])
