@@ -22,15 +22,13 @@ Start Ur is at (52.411910, 43.385410) for trafo (set rostopic pub /wall_frame_ba
   - lateral_nozzle_pose_override is set to 0 in control_ur
 
 ## Future
-- control_ur in vel_not_working is probably all correct --> implement in current control_ur
-  - ur velocities im Vorhinein bestimmen und als Vorsteuerung nehmen? (transform)
-  - error dann zusätzlich mit kleinem Kp + nozzle_correction
-- All in namespace like move_to_start_pose
+- for error: take only part orthogonal to path
+  - use n path-points before and after current point if short distance between points
+  - rest is done via feedforward
+- All parameters etc in namespace like move_to_start_pose
 - Include speeds
   - calc speed mir like UR
 - Implement Scale_Map
-- Path publisher for viewing (less points)
-  - erledigt: **pub_paths_view.py**
 
 
 ## Helper
