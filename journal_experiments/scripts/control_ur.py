@@ -102,32 +102,27 @@ class Control_ur():
             # to correct errors in the scanner alingment, the robot has to move sideways
             [x,y] = self.compute_nozzle_correction(sensor_angle, mir_angle)
                         
-            # compute the control law
+            # compute the control law (assumption: points are close enough to each other, so that there is no error if UR is on path)
             ur_twist_command = Twist()
             error_lin = np.array([self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x) + self.Kp_lateral * x,
                                   self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y) + self.Kp_lateral * y,
                                   self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)])
-            # # To keep the given velocity, the error has to be normalized
-            # error_lin_normal=error_lin/np.linalg.norm(error_lin)
-            # ur_twist_command.linear.x = self.path_velocities_ur[self.path_index]*error_lin_normal[0]
-            # ur_twist_command.linear.y = self.path_velocities_ur[self.path_index]*error_lin_normal[1]
-            # ur_twist_command.linear.z = self.path_velocities_ur[self.path_index]*error_lin_normal[2]
             
             # use path velcoities as feedforward
-            k_ff = 0.0
+            k_ff = 1.0 #0.5
             ur_vel_path_local = self.compute_ur_target_vel_local(self.path_velocities_ur_direction[self.path_index][:3])
             ur_twist_command.linear.x = k_ff*ur_vel_path_local[0] + error_lin[0]
             ur_twist_command.linear.y = k_ff*ur_vel_path_local[1] + error_lin[1]
             ur_twist_command.linear.z = k_ff*ur_vel_path_local[2] + error_lin[2]
             
-            debug_twist = TwistStamped()
-            debug_twist.header.stamp = rospy.Time.now()
-            debug_twist.header.frame_id = "mur620c/UR10_l/base_link"
-            debug_twist.twist = ur_twist_command
-            debug_twist.twist.linear.x = ur_vel_path_local[0]
-            debug_twist.twist.linear.y = ur_vel_path_local[1]
-            debug_twist.twist.linear.z = ur_vel_path_local[2]
-            self.twist_debug_publisher.publish(debug_twist)
+            # debug_twist = TwistStamped()
+            # debug_twist.header.stamp = rospy.Time.now()
+            # debug_twist.header.frame_id = "mur620c/UR10_l/base_link"
+            # debug_twist.twist = ur_twist_command
+            # debug_twist.twist.linear.x = ur_vel_path_local[0]
+            # debug_twist.twist.linear.y = ur_vel_path_local[1]
+            # debug_twist.twist.linear.z = ur_vel_path_local[2]
+            # self.twist_debug_publisher.publish(debug_twist)
             
             
             # ur_twist_command.angular.z = self.Kp_phi * e_phi    # TODO: also other angles. To print in 3D orientation
