@@ -11,6 +11,8 @@ Panels:
         - /StartPose1
         - /StartPose1/Status1
         - /Path_Start1
+        - /vel_path1
+        - /vel_path1/Status1
       Splitter Ratio: 0.6205882430076599
     Tree Height: 976
   - Class: rviz/Selection
@@ -364,8 +366,14 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        actual_pose_0:
+          Value: true
         map:
           Value: false
+        mir_global_target_pose:
+          Value: true
+        mocap:
+          Value: true
         mur620c/UR10_l/base:
           Value: false
         mur620c/UR10_l/base_link:
@@ -482,6 +490,8 @@ Visualization Manager:
           Value: false
         mur620c/surface:
           Value: false
+        mur620c/target_point:
+          Value: true
         mur620c/top_module:
           Value: false
         mur620c/us_1_frame:
@@ -489,6 +499,16 @@ Visualization Manager:
         mur620c/us_2_frame:
           Value: false
         sensor_frame:
+          Value: true
+        target_point:
+          Value: true
+        target_pose_0:
+          Value: true
+        target_pose_controll0:
+          Value: true
+        ur_global_target_pose:
+          Value: true
+        ur_local_target_pose:
           Value: true
         ur_target_pose:
           Value: true
@@ -500,6 +520,10 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
+          actual_pose_0:
+            {}
+          mir_global_target_pose:
+            {}
           mur620c/odom:
             mur620c/base_footprint:
               mur620c/base_link:
@@ -562,6 +586,8 @@ Visualization Manager:
                                       mur620c/UR10_l/tool0:
                                         sensor_frame:
                                           {}
+                        target_point:
+                          {}
                         ur_target_pose:
                           {}
                   mur620c/right_lift_bottom:
@@ -586,6 +612,17 @@ Visualization Manager:
                   {}
                 mur620c/us_2_frame:
                   {}
+                ur_local_target_pose:
+                  {}
+          target_pose_controll0:
+            {}
+          ur_global_target_pose:
+            {}
+        mocap:
+          mur620c/target_point:
+            {}
+          target_pose_0:
+            {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -696,6 +733,21 @@ Visualization Manager:
       Topic: /ur_path_start
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Angular Arrow Scale: 2
+      Angular Color: 204; 204; 51
+      Arrow Width: 0.5
+      Class: rviz/TwistStamped
+      Enabled: true
+      Hide Small Values: true
+      History Length: 1
+      Linear Arrow Scale: 20
+      Linear Color: 52; 101; 164
+      Name: vel_path
+      Queue Size: 10
+      Topic: /ur_twist_debug
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -724,7 +776,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 21.880407333374023
+      Distance: 8.582222938537598
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -732,17 +784,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 2.872342109680176
-        Y: -5.8571367263793945
-        Z: -8.67156995809637e-06
+        X: -0.013803839683532715
+        Y: -0.645339846611023
+        Z: -1.2526180398708675e-05
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5603980422019958
+      Pitch: 1.139796257019043
       Target Frame: <Fixed Frame>
-      Yaw: 5.478590488433838
+      Yaw: 3.06540584564209
     Saved: ~
 Window Geometry:
   Displays:

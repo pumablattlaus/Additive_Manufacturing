@@ -6,7 +6,7 @@ from helper_nodes.control_ur_helper import Control_ur_helper
 from tf import transformations
 from std_msgs.msg import Int32
 from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped, Pose, Twist, Transform
+from geometry_msgs.msg import PoseStamped, Pose, Twist, Transform, TwistStamped
 import math
 from copy import deepcopy
 import numpy as np
@@ -21,7 +21,8 @@ class Control_ur():
     
     def __init__(self):
         rospy.init_node("control_ur_node")
-        Control_ur_helper(self)    
+        Control_ur_helper(self)
+        self.twist_debug_publisher = rospy.Publisher("/ur_twist_debug", TwistStamped, queue_size=1)    
         self.config()
         
     
@@ -106,11 +107,28 @@ class Control_ur():
             error_lin = np.array([self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x) + self.Kp_lateral * x,
                                   self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y) + self.Kp_lateral * y,
                                   self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)])
-            # To keep the given velocity, the error has to be normalized
-            error_lin_normal=error_lin/np.linalg.norm(error_lin)
-            ur_twist_command.linear.x = self.path_velocities_ur[self.path_index]*error_lin_normal[0]
-            ur_twist_command.linear.y = self.path_velocities_ur[self.path_index]*error_lin_normal[1]
-            ur_twist_command.linear.z = self.path_velocities_ur[self.path_index]*error_lin_normal[2]
+            # # To keep the given velocity, the error has to be normalized
+            # error_lin_normal=error_lin/np.linalg.norm(error_lin)
+            # ur_twist_command.linear.x = self.path_velocities_ur[self.path_index]*error_lin_normal[0]
+            # ur_twist_command.linear.y = self.path_velocities_ur[self.path_index]*error_lin_normal[1]
+            # ur_twist_command.linear.z = self.path_velocities_ur[self.path_index]*error_lin_normal[2]
+            
+            # use path velcoities as feedforward
+            k_ff = 0.0
+            ur_vel_path_local = self.compute_ur_target_vel_local(self.path_velocities_ur_direction[self.path_index][:3])
+            ur_twist_command.linear.x = k_ff*ur_vel_path_local[0] + error_lin[0]
+            ur_twist_command.linear.y = k_ff*ur_vel_path_local[1] + error_lin[1]
+            ur_twist_command.linear.z = k_ff*ur_vel_path_local[2] + error_lin[2]
+            
+            debug_twist = TwistStamped()
+            debug_twist.header.stamp = rospy.Time.now()
+            debug_twist.header.frame_id = "mur620c/UR10_l/base_link"
+            debug_twist.twist = ur_twist_command
+            debug_twist.twist.linear.x = ur_vel_path_local[0]
+            debug_twist.twist.linear.y = ur_vel_path_local[1]
+            debug_twist.twist.linear.z = ur_vel_path_local[2]
+            self.twist_debug_publisher.publish(debug_twist)
+            
             
             # ur_twist_command.angular.z = self.Kp_phi * e_phi    # TODO: also other angles. To print in 3D orientation
             # distance of rotation for UR:
@@ -256,6 +274,14 @@ class Control_ur():
         ur_target_pose_local.position.y = -ur_target_pose_local.position.y
         return ur_target_pose_local
     
+    def compute_ur_target_vel_local(self, ur_target_vel_global: np.ndarray = np.zeros(3)):
+        ur_target_vel_local = np.zeros(3)
+        mir_angle = transformations.euler_from_quaternion([self.mir_pose.orientation.x, self.mir_pose.orientation.y, self.mir_pose.orientation.z, self.mir_pose.orientation.w])[2]
+        ur_target_vel_local[0] = ur_target_vel_global[0] * math.cos(mir_angle) + ur_target_vel_global[1] * math.sin(mir_angle)
+        ur_target_vel_local[1] = -ur_target_vel_global[0] * math.sin(mir_angle) + ur_target_vel_global[1] * math.cos(mir_angle)
+        ur_target_vel_local[2] = ur_target_vel_global[2]
+        return ur_target_vel_local
+    
     def compute_e_phi(self,ur_target_pose_global):
         # compute current tcp angle
         ur_target_phi = transformations.euler_from_quaternion([ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w])[2]
@@ -327,18 +353,23 @@ class Control_ur():
     def compute_path_velocities(self):
         # self.path_velocities_ur = [1e-20]   # to make sure next index is taken at comparing path_distance > self.path_lengths
         self.path_velocities_ur = [self.ur_target_velocity]
+        self.path_velocities_ur_direction = []
         # self.path_velocities_mir = []
 
         for idx in range(len(self.ur_path_array)-1):
             dt = self.timestamps[idx+1] - self.timestamps[idx]
-            ds = math.sqrt((self.ur_path_array[idx+1][0] - self.ur_path_array[idx][0])**2 + (self.ur_path_array[idx+1][1] - self.ur_path_array[idx][1])**2 + (self.ur_path_array[idx+1][2] - self.ur_path_array[idx][2])**2)
+
+            dx = self.ur_path_array[idx+1][0] - self.ur_path_array[idx][0]
+            dy = self.ur_path_array[idx+1][1] - self.ur_path_array[idx][1]
+            dz = self.ur_path_array[idx+1][2] - self.ur_path_array[idx][2]
+            ds = math.sqrt(dx**2 + dy**2 + dz**2)
             if dt != 0.0:
                 self.path_velocities_ur.append(ds/dt)
+                self.path_velocities_ur_direction.append([dx/dt, dy/dt, dz/dt])
             else:
                 # rospy.logwarn("dt = 0.0 -> setting velocity to last velocity #0.0")
                 self.path_velocities_ur.append(self.path_velocities_ur[-1])
-            
-            # self.path_velocities_ur.append(self.ur_target_velocity)
+                self.path_velocities_ur_direction.append(self.path_velocities_ur_direction[-1])                
 
             # TODO: mir path velocities
     

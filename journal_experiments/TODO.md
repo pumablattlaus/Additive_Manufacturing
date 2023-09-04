@@ -23,6 +23,8 @@ Start Ur is at (52.411910, 43.385410) for trafo (set rostopic pub /wall_frame_ba
 
 ## Future
 - control_ur in vel_not_working is probably all correct --> implement in current control_ur
+  - ur velocities im Vorhinein bestimmen und als Vorsteuerung nehmen? (transform)
+  - error dann zusätzlich mit kleinem Kp + nozzle_correction
 - All in namespace like move_to_start_pose
 - Include speeds
   - calc speed mir like UR
