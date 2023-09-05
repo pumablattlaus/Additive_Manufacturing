@@ -30,6 +30,24 @@ Start Ur is at (52.411910, 43.385410) for trafo (set rostopic pub /wall_frame_ba
   - calc speed mir like UR
 - Implement Scale_Map
 
+### Multi-robot
+2nd robot which moves to path point and back
+- 3 poses: pickup, wait/start, drop off
+- timing
+  - no collision
+  - concrete doesnt harden (right after 1st robot)
+    - goto wait position where no collision with 1st robot
+    - get current pose of 1st robot
+    - if 1st robot is at path point, start 2nd robot
+    - 2nd robot: reach path point from same direction of 1st robot or orthogonal?
+      - same direction --> printed path is definetly reachable with same robot type
+    - 2nd robot: move back to start pose
+- drop something on the printed path
+
+#### StateMachine
+Concurrent StateMachine for multiple robots
+
+
 
 ## Helper
 ### **pub_paths_view.py**
