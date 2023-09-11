@@ -24,41 +24,51 @@ class GetVars(smach.State):
         formatin_plan_topic = rospy.get_param("/formation_plan_topic","/mir_path")
         mir_pickup_topic = rospy.get_param("dropper/pickup_pose_topic","/dropper/mir_pickup")
         mir_wait_topic = rospy.get_param("dropper/wait_pose_topic","/dropper/mir_wait")
-        userdata.mir_dropoff_idx = rospy.get_param("dropper/dropoff_pose_idx",0)
+        mir_dropoff_idx = rospy.get_param("dropper/dropoff_pose_idx",0)
+        userdata.mir_dropoff_idx = mir_dropoff_idx
 
         rospy.loginfo('Waiting for mir path')
         state_publisher("idle")
 
         # Commented FOR TESTING:
-        # userdata.mir_path_print = rospy.wait_for_message(formatin_plan_topic, Path)
-        # rospy.loginfo('mir path received')
+        mir_path_print = rospy.wait_for_message(formatin_plan_topic, Path)
+        userdata.mir_path_print = mir_path_print
+        rospy.loginfo('mir path received')
         
         # rospy.loginfo('Waiting for ur path')
-        # userdata.ur_path_print = rospy.wait_for_message("/ur_path", Path)
-        # rospy.loginfo('ur path received')
+        userdata.ur_path_print = rospy.wait_for_message("/ur_path", Path)
+        rospy.loginfo('ur path received')
         
         # Commented FOR TESTING:
-        # userdata.mir_pickup_pose = rospy.wait_for_message(mir_pickup_topic, PoseStamped)
-        # userdata.mir_dropoff_pose = userdata.mir_path_print.poses[mir_dropoff_idx]
+        userdata.mir_pickup_pose = rospy.wait_for_message(mir_pickup_topic, PoseStamped)
+        userdata.mir_dropoff_pose = mir_path_print.poses[mir_dropoff_idx]
         userdata.mir_wait_pose = rospy.wait_for_message(mir_wait_topic, PoseStamped)
+        
+        rospy.loginfo('all variables received')
         
         return 'variables_received'
 
 # In this state the MiR-dropper waits for the printer to finish printing the object part before dropping the steel rod
 class MiRWaitForPrinter(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['dropoff_pose_free'])
+        smach.State.__init__(self, outcomes=['dropoff_pose_free'], input_keys=['mir_dropoff_idx', 'printer_idx'])
         
     def execute(self, userdata):
         state_publisher("waiting_for_printer")
         # wait for the printer to reach the dropoff pose/idx:
-        # TODO: is current already idx published by other state machine?
+        # TODO: current idx already published at /path_index
+        
         mir_dropoff_idx = userdata.mir_dropoff_idx
+        
+        while userdata.printer_idx <= mir_dropoff_idx and not rospy.is_shutdown():
+            rospy.loginfo_throttle(5, "userdata.printer_idx < mir_dropoff_idx")
+            rospy.sleep(0.1)
 
-        print("goal_pose: ", pose)
+        rospy.loginfo("printer_idx = " + str(userdata.printer_idx))
+        rospy.loginfo("mir_dropoff_idx = " + str(mir_dropoff_idx))
 
         
-        return 'variables_received'
+        return 'dropoff_pose_free'
 
 # In this state the UR is moved to the first pose of the UR path
 class UR_DropOff(smach.State):
@@ -172,9 +182,14 @@ def main():
     sm.userdata.relative_positions_x = rospy.get_param("state_machine_dropper/relative_positions_x", [0])
     sm.userdata.relative_positions_y = rospy.get_param("state_machine_dropper/relative_positions_y", [0])
     sm.userdata.state = ""
+    sm.userdata.printer_idx = 0
 
     # Open the container
     with sm:
+        def cb_path_idx(msg: Int32):
+            sm.userdata.printer_idx = msg.data
+            
+        rospy.Subscriber("/path_index", Int32, cb_path_idx)
         # Add states to the container
         smach.StateMachine.add('GetVars', GetVars(), 
                                transitions={'variables_received':'MiRMoveToWaitPose'},
@@ -183,13 +198,6 @@ def main():
                                           'ur_path_print':'ur_path_print',
                                           'mir_pickup_pose':'mir_pickup_pose',
                                           'mir_dropoff_pose':'mir_dropoff_pose'})
-        # smach.StateMachine.add('MiRMoveToWaitPose', MiRMoveToWaitPose(), 
-        #                        transitions={'at_pose':'Move_UR_to_start_pose'},
-        #                        remapping={'mir_wait_pose':'mir_wait_pose',
-        #                                   'relative_positions_x':'relative_positions_x',
-        #                                   'relative_positions_y':'relative_positions_y',
-        #                                   'active_robots':'active_robots',
-        #                                   'robot_names':'robot_names'})
         
         def create_move_base_goal(userdata, arg):
             goal = MoveBaseGoal()
@@ -198,7 +206,7 @@ def main():
             return goal
         
         
-        smach.StateMachine.add('MiRMoveToWaitPose', SimpleActionState('/mur620c/move_base',
+        smach.StateMachine.add('MiRMoveToWaitPose', SimpleActionState('/mur620b/move_base',
                                                                       MoveBaseAction,
                                                                       goal_cb=create_move_base_goal,
                                                                     #   arg=sm.userdata.mir_wait_pose,
@@ -209,22 +217,25 @@ def main():
                                remapping={'goal_pose':'mir_wait_pose'})
         
         smach.StateMachine.add('MiRWaitForPrinter', MiRWaitForPrinter(),
-                               transitions={'dropoff_pose_free':'UR_DropOff'},
-                               remapping={'mir_dropoff_idx':'mir_dropoff_idx'})
+                               transitions={'dropoff_pose_free':'MiRMoveToDropPose'},
+                               remapping={'mir_dropoff_idx':'mir_dropoff_idx', 'printer_idx':'printer_idx'})
         
-        smach.StateMachine.add('MiRMoveToDropPose', SimpleActionState('/mur620c/move_base',
+        smach.StateMachine.add('MiRMoveToDropPose', SimpleActionState('/mur620b/move_base',
                                                                       MoveBaseAction,
                                                                       goal_cb=create_move_base_goal,
                                                                     #   arg=sm.userdata.mir_wait_pose,
                                                                     #   result_slots=['max_effort', 
                                                                     #                 'position']),
                                                                       input_keys=['goal_pose']),
-                               transitions={'succeeded':'sm_finished', 'preempted':'sm_failed', 'aborted':'sm_failed'},
+                               transitions={'succeeded':'MiRMoveToWaitPose', 'preempted':'sm_failed', 'aborted':'sm_failed'},
                                remapping={'goal_pose':'mir_dropoff_pose'})
+        
+        # smach.StateMachine.add('UR_DropOff', UR_DropOff(),
+        #                        transitions={'object_dropped':'GetNewVars'})
         
     # Execute SMACH plan
 
-    sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
+    sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_DROPPER')
     sis.start()
 
     outcome = sm.execute()
