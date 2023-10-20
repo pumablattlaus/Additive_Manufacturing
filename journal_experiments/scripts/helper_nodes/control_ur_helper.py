@@ -12,11 +12,13 @@ class Control_ur_helper():
         
         self.base_node.ur_command_topic = rospy.get_param("~ur_command_topic", "/mur620c/UR10_r/twist_controller/command_safe")
         self.base_node.ur_pose_topic = rospy.get_param("~ur_pose_topic", "/mur620c/UR10_r/ur_calibrated_pose")
-        self.base_node.mir_pose_topic = rospy.get_param("~mir_pose_topic", "/mur620c/mir/robot_pose")
+        self.base_node.mir_pose_topic = rospy.get_param("~mir_pose_topic", "/mur620c/robot_pose")
         self.lateral_nozzle_pose_override_topic = rospy.get_param("~lateral_nozzle_pose_override_topic", "/lateral_nozzle_pose_override")
+        self.base_node.lateral_nozzle_pose_override = 0.0
         self.base_node.ur_base_link_frame_id = rospy.get_param("~ur_base_link_frame_id", "mur620c/UR10_r/base_link")
-        self.base_node.mir_cmd_vel_topic = rospy.get_param("~mir_cmd_vel_topic", "/mur620c/mir/cmd_vel")
+        self.base_node.mir_cmd_vel_topic = rospy.get_param("~mir_cmd_vel_topic", "/mur620c/cmd_vel")
         self.base_node.tf_prefix = rospy.get_param("~tf_prefix", "mur620c/")
+        self.base_node.ur_prefix = rospy.get_param("~ur_prefix", "UR10_l")
         self.base_node.ur_twist_publisher = rospy.Publisher(self.base_node.ur_command_topic, Twist, queue_size=1)
         self.base_node.ur_target_pose_broadcaster = tf.TransformBroadcaster()
         self.base_node.listener = tf.TransformListener()
@@ -36,8 +38,8 @@ class Control_ur_helper():
         self.base_node.path_index_timestamp = rospy.Time.now()
 
         # get transform from sensor frame to ur tcp
-        self.base_node.listener.waitForTransform("sensor_frame", "mur620c/UR10_r/tool0", rospy.Time(0), rospy.Duration(4.0))
-        self.base_node.sensor_to_tcp = self.base_node.listener.lookupTransform("sensor_frame", "mur620c/UR10_r/tool0", rospy.Time(0))
+        self.base_node.listener.waitForTransform("sensor_frame", "mur620c/"+self.base_node.ur_prefix+"/tool0", rospy.Time(0), rospy.Duration(4.0))
+        self.base_node.sensor_to_tcp = self.base_node.listener.lookupTransform("sensor_frame", "mur620c/"+self.base_node.ur_prefix+"/tool0", rospy.Time(0))
 
         self.setup_ddynamic_reconfigure()
         rospy.Subscriber(self.base_node.ur_pose_topic, PoseStamped, self.ur_pose_callback)
@@ -85,7 +87,7 @@ class Control_ur_helper():
         ddynrec.add_variable("Kpx", "float/double variable", -0.7, -1.0, 1.0)
         ddynrec.add_variable("Kpy", "float/double variable", -0.7, -1.0, 1.0)
         ddynrec.add_variable("Kpz", "float/double variable", 0.50, -1.0, 1.0)
-        ddynrec.add_variable("Kp_phi", "float/double variable", 0.2, -1.0, 1.0)
+        ddynrec.add_variable("Kp_phi", "float/double variable", 0.0002, -1.0, 1.0)
         ddynrec.add_variable("Kp_mir", "float/double variable", 0.1, -1.0, 1.0)
         ddynrec.add_variable("Kp_ffx", "float/double variable", 0.0, -1.0, 1.0)
         ddynrec.add_variable("Kp_ffy", "float/double variable", 0.0, -1.0, 1.0)

@@ -9,15 +9,18 @@ from tf import transformations, TransformListener
 import math
 from copy import deepcopy
 from std_msgs.msg import String
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseStamped, Quaternion
+import numpy as np
 
 # define global variables
 path = Path();
 ur_path = Path();
-active_robots = rospy.get_param("~active_robots", 1)
-robot_names = rospy.get_param("~robot_names", ["mur620c"])
-relative_positions_x = rospy.get_param("~relative_positions_x", [0])
-relative_positions_y = rospy.get_param("~relative_positions_y", [0])
+# No private parameters are used because there is nodename yet
+active_robots = rospy.get_param("/state_machine/active_robots", 1)
+robot_names = rospy.get_param("/state_machine/robot_names", ["mur620c"])
+ur_prefixes = rospy.get_param("/state_machine/ur_prefixes", ["UR10_l"])
+relative_positions_x = rospy.get_param("/state_machine/relative_positions_x", [0])
+relative_positions_y = rospy.get_param("/state_machine/relative_positions_y", [0])
 state = ""
 
 # In this state the target paths for the MiR and UR are parsed
@@ -28,7 +31,8 @@ class Parse_path(smach.State):
     def execute(self, userdata):
         rospy.loginfo('Parsing path')
         
-        process = launch_ros_node("create_path","journal_experiments","create_path.py")
+        process = launch_ros_node("create_path","journal_experiments","create_path.py") #left arm
+        # process = launch_ros_node("parse_path_trafo","journal_experiments","parse_path_trafo.py") #right arm
         
         return 'path_parsed'
 
@@ -82,6 +86,14 @@ class Move_UR_to_start_pose(smach.State):
         
 
     def execute(self, userdata):
+
+        # Just for debugging:
+        pub_ur_path_start = rospy.Publisher("/ur_path_start", PoseStamped, queue_size=1, latch=True)
+        pose_start = PoseStamped()
+        pose_start.header.frame_id = "map"
+        pose_start.pose = ur_path.poses[1].pose
+        pub_ur_path_start.publish(pose_start)
+        # Just for debugging end
         
         relative_positions_x_global = path.poses[1].pose.position.x - ur_path.poses[0].pose.position.x
         relative_positions_y_global = path.poses[1].pose.position.y - ur_path.poses[0].pose.position.y
@@ -95,17 +107,34 @@ class Move_UR_to_start_pose(smach.State):
         # get transformation between ur and mir
         tf_listener = TransformListener()
         # wait for transform
-        tf_listener.waitForTransform(robot_names[0] + "/mir/base_link", robot_names[0] + "/UR10_r/base_link", rospy.Time(0), rospy.Duration(4.0))
-        lin, ang = tf_listener.lookupTransform(robot_names[0] + "/mir/base_link", robot_names[0] + "/UR10_r/base_link", rospy.Time(0))
-        
-        ur_start_pose = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        ur_start_pose[0] = relative_positions_x_local + lin[0]
-        ur_start_pose[1] = relative_positions_y_local + lin[1]
+        tf_listener.waitForTransform(robot_names[0] + "/base_link", robot_names[0] + "/"+ur_prefixes[0]+"/base_link", rospy.Time(0), rospy.Duration(4.0))
+        lin, ang = tf_listener.lookupTransform(robot_names[0] + "/base_link", robot_names[0] + "/"+ur_prefixes[0]+"/base_link", rospy.Time(0))
+
+        rospy.loginfo(f"UR start pose orientation: {ur_path.poses[1].pose.orientation}")
+        rospy.loginfo(f"ur_prefix is {ur_prefixes[0]}")
+        rospy.sleep(1.0)
+
+        # rotate around x so that the gripper is pointing down
+        # q_rot = transformations.quaternion_from_euler(np.pi, 0, 0)
+        # q_ur=transformations.quaternion_multiply(q_rot, ur_path.poses[1].pose.orientation.__reduce__()[2])
+        # q_rot = transformations.quaternion_from_euler(0, 0, np.pi/2)
+        # q_ur=transformations.quaternion_multiply(q_rot, q_ur)
+        # q_ur = q_ur.tolist() # because param cant handle numpy types
+
+        ur_start_pose = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+        ur_start_pose[0] = -relative_positions_x_local - lin[0]
+        ur_start_pose[1] = -relative_positions_y_local - lin[1]
         ur_start_pose[2] = ur_path.poses[1].pose.position.z - lin[2]
         ur_start_pose[3] = ur_path.poses[1].pose.orientation.x
         ur_start_pose[4] = ur_path.poses[1].pose.orientation.y
         ur_start_pose[5] = ur_path.poses[1].pose.orientation.z
         ur_start_pose[6] = ur_path.poses[1].pose.orientation.w
+        # ur_start_pose[3] = q_ur[0]
+        # ur_start_pose[4] = q_ur[1]
+        # ur_start_pose[5] = q_ur[2]
+        # ur_start_pose[6] = q_ur[3]
+
+        # TODO: ADD MIR ANGLE TO ORIENTATION? (right now done by move_ur_start_pose.py)
         
         rospy.loginfo('Executing state Move_UR_to_start_pose')
         process = launch_ros_node("move_ur_to_start_pose","journal_experiments","move_ur_to_start_pose.py", "", "", ur_start_pose=ur_start_pose, mir_angle = mir_angle)
@@ -136,16 +165,20 @@ class Start_formation_controller(smach.State):
 
         # convert ur path to a list of poses 
         ur_path_array = []
+        timestamps = []
         for pose in ur_path.poses:
             ur_path_array.append([pose.pose.position.x, pose.pose.position.y , pose.pose.position.z + 0.072, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])
-
+            timestamps.append(pose.header.stamp.to_sec())
+            if pose.header.stamp.to_sec() == 0.0:
+                rospy.logwarn("timestamp = 0.0")
+        
         # compute length of ur path and mir path to compare them
         mir_path_length = compute_path_length(path)
         ur_path_length = compute_path_length(ur_path)
         length_factor = mir_path_length / ur_path_length
 
         # launch the ur controller node
-        process = launch_ros_node("control_ur","journal_experiments","control_ur.py", "", "", ur_path_array=ur_path_array, length_factor=length_factor, mir_path_array = path_array)
+        process = launch_ros_node("control_ur","journal_experiments","control_ur.py", "", "", ur_path_array=ur_path_array, length_factor=length_factor, mir_path_array = path_array, timestamps=timestamps)
 
         while process.is_alive() and not rospy.is_shutdown():
                 rospy.sleep(0.1)
