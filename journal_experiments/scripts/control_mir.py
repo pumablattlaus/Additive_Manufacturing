@@ -103,7 +103,7 @@ class Control_mir_node():
             for i in range(len(self.robot_names)):
                 distances[i] = self.path_lengths[i][self.path_index] - current_distances[i]
                 if distances[i] <= 0.0:
-                    rospy.logerr("distance to next point is negative")
+                    rospy.logerr_throttle(0.5, "distance to next point is negative")
                     distances[i] = 0.000001
             
             # compute target velocity

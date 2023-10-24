@@ -54,7 +54,7 @@ class MoveURToStartPose():
         robot_names = rospy.get_param("~robot_names", ["mur620c"])
         pub_start_pose = rospy.Publisher("/start_pose_ur", PoseStamped, queue_size=1, latch=True)
         pose_pub = PoseStamped()
-        pose_pub.header.frame_id = robot_names[0] + "/UR10_r/base_link"
+        pose_pub.header.frame_id = robot_names[0] + "/UR10_l/base"
         pose_pub.pose = self.ur_start_pose
         pub_start_pose.publish(pose_pub)
 

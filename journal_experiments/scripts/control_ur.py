@@ -48,7 +48,7 @@ class Control_ur():
         
         # start moving the mir
         self.mir_target_velocity = Twist()
-        self.mir_target_velocity.linear.x = self.path_velocities_ur[0] * self.length_factor * 0.80
+        self.mir_target_velocity.linear.x = self.path_velocities_ur[0] * self.length_factor * 0.50
         #self.mir_target_velocity_publisher.publish(self.mir_target_velocity)
         
         # wait for the subscriber to receive the first pose message
@@ -215,7 +215,7 @@ class Control_ur():
     
     def control_mir_velocity(self,target_pose = Pose()):
         error = math.sqrt((target_pose.position.x - self.mir_pose.position.x)**2 + (target_pose.position.y - self.mir_pose.position.y)**2)
-        self.mir_target_velocity.linear.x = self.ur_target_velocity * self.length_factor * 0.80 + self.Kp_mir * error
+        self.mir_target_velocity.linear.x = self.ur_target_velocity * self.length_factor * 0.80 #+ self.Kp_mir * error
         self.mir_target_velocity_publisher.publish(self.mir_target_velocity)
     
     def compute_path_lengths(self):
@@ -283,14 +283,15 @@ class Control_ur():
         
         # get sensor frame from keyence
         try:
-            now = rospy.Time.now()
-            (trans,rot) = self.listener.lookupTransform("map", "sensor_frame", now - rospy.Duration(0.2))
+            # t = rospy.Time.now() - rospy.Duration(0.2)
+            (trans,rot) = self.listener.lookupTransform("map", "sensor_frame", rospy.Time(0))
             sensor_angle = transformations.euler_from_quaternion(rot)[2]
             e_phi = ur_target_phi - sensor_angle - math.pi/2
             
-        except:
-            rospy.logerr("Could not get transform from map to sensor_frame")
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
+            rospy.logerr_throttle(0.5, "Could not get transform from map to sensor_frame. Error: " + str(e))
             e_phi = 0.0
+            sensor_angle = math.pi/2
         
         if e_phi > math.pi:
             e_phi -= 2*math.pi
@@ -305,6 +306,14 @@ class Control_ur():
         ur_target_pose_base.position.y = ur_target_pose_local.position.y + self.mir_ur_transform.translation.y
         ur_target_pose_base.position.z = ur_target_pose_local.position.z - self.mir_ur_transform.translation.z
         ur_target_pose_base.orientation.w = 1.0
+
+        # ur_ideal_frame = self.tf_prefix + "/" + self.ur_prefix + "/base_ideal"
+        # ur_target_pose_base_stamped = PoseStamped()
+        # ur_target_pose_base_stamped.header.frame_id = ur_ideal_frame
+        # ur_target_pose_base_stamped.header.stamp = rospy.Time(0)
+        # ur_target_pose_base_stamped.pose = ur_target_pose_base
+
+        # ur_target_pose_base = self.listener.transformPose(self.ur_base_link_frame_id, ur_target_pose_base_stamped).pose
 
         # broadcast target pose
         self.ur_target_pose_broadcaster.sendTransform((ur_target_pose_base.position.x, ur_target_pose_base.position.y, ur_target_pose_base.position.z), (ur_target_pose_base.orientation.x, ur_target_pose_base.orientation.y, ur_target_pose_base.orientation.z, ur_target_pose_base.orientation.w), rospy.Time.now(), "target_point", self.ur_base_link_frame_id)

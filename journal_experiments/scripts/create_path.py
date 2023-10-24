@@ -15,7 +15,7 @@ class Create_path():
         self.dist = 100
         self.r_ur = 1.0
         self.r_mir=2.0
-        self.shift_ur = 0.1 # in meter
+        self.shift_ur = 0.3 # in meter
         self.dt = 10/self.point_per_meter # seconds between points
         pass
     

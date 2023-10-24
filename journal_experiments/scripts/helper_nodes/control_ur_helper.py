@@ -48,6 +48,7 @@ class Control_ur_helper():
         rospy.Subscriber(self.lateral_nozzle_pose_override_topic, Float32,  self.lateral_nozzle_pose_override_callback)
 
     def ur_pose_callback(self, data = PoseStamped()):
+        data = self.base_node.listener.transformPose(self.base_node.ur_base_link_frame_id, data)
         self.base_node.ur_pose = data.pose
         
     def mir_cmd_vel_callback(self, msg = Twist()):
