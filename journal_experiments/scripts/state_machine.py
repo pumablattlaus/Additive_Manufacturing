@@ -107,8 +107,8 @@ class Move_UR_to_start_pose(smach.State):
         # get transformation between ur and mir
         tf_listener = TransformListener()
         # wait for transform
-        tf_listener.waitForTransform(robot_names[0] + "/base_link", robot_names[0] + "/"+ur_prefixes[0]+"/base_link", rospy.Time(0), rospy.Duration(4.0))
-        lin, ang = tf_listener.lookupTransform(robot_names[0] + "/base_link", robot_names[0] + "/"+ur_prefixes[0]+"/base_link", rospy.Time(0))
+        tf_listener.waitForTransform(robot_names[0] + "/base_link", robot_names[0] + "/"+ur_prefixes[0]+"/base_ideal", rospy.Time(0), rospy.Duration(4.0))
+        lin, ang = tf_listener.lookupTransform(robot_names[0] + "/base_link", robot_names[0] + "/"+ur_prefixes[0]+"/base_ideal", rospy.Time(0))
 
         rospy.loginfo(f"UR start pose orientation: {ur_path.poses[1].pose.orientation}")
         rospy.loginfo(f"ur_prefix is {ur_prefixes[0]}")
@@ -120,24 +120,33 @@ class Move_UR_to_start_pose(smach.State):
         # q_rot = transformations.quaternion_from_euler(0, 0, np.pi/2)
         # q_ur=transformations.quaternion_multiply(q_rot, q_ur)
         # q_ur = q_ur.tolist() # because param cant handle numpy types
+        # ur_start_pose_array[3] = q_ur[0]
+        # ur_start_pose_array[4] = q_ur[1]
+        # ur_start_pose_array[5] = q_ur[2]
+        # ur_start_pose_array[6] = q_ur[3]
 
-        ur_start_pose = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
-        ur_start_pose[0] = -relative_positions_x_local - lin[0]
-        ur_start_pose[1] = -relative_positions_y_local - lin[1]
-        ur_start_pose[2] = ur_path.poses[1].pose.position.z - lin[2]
-        ur_start_pose[3] = ur_path.poses[1].pose.orientation.x
-        ur_start_pose[4] = ur_path.poses[1].pose.orientation.y
-        ur_start_pose[5] = ur_path.poses[1].pose.orientation.z
-        ur_start_pose[6] = ur_path.poses[1].pose.orientation.w
-        # ur_start_pose[3] = q_ur[0]
-        # ur_start_pose[4] = q_ur[1]
-        # ur_start_pose[5] = q_ur[2]
-        # ur_start_pose[6] = q_ur[3]
+        ur_start_pose = PoseStamped()
+        ur_start_pose.header.frame_id = robot_names[0] +"/"+ur_prefixes[0]+ "/base_ideal"
+        ur_start_pose.header.stamp = rospy.Time(0)
+
+        ur_start_pose.pose.position.x = -relative_positions_x_local - lin[0]
+        ur_start_pose.pose.position.y = -relative_positions_y_local - lin[1]
+        ur_start_pose.pose.position.z = ur_path.poses[1].pose.position.z - lin[2]
+        ur_start_pose.pose.orientation = ur_path.poses[1].pose.orientation
+
+        # Transform in base frame for twist controller:
+        ur_start_pose = tf_listener.transformPose(robot_names[0] +"/"+ur_prefixes[0]+ "/base", ur_start_pose)
+
+        # Array for handing over to move_ur_start_pose.py
+        # ur_start_pose_array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+        ur_start_pose_array = [ur_start_pose.pose.position.x, ur_start_pose.pose.position.y, ur_start_pose.pose.position.z, 
+                               ur_start_pose.pose.orientation.x, ur_start_pose.pose.orientation.y, ur_start_pose.pose.orientation.z, ur_start_pose.pose.orientation.w]
+        ur_start_pose_array = [float(v) for v in ur_start_pose_array] #because else numpy.float64 which cant be marshalled
 
         # TODO: ADD MIR ANGLE TO ORIENTATION? (right now done by move_ur_start_pose.py)
         
         rospy.loginfo('Executing state Move_UR_to_start_pose')
-        process = launch_ros_node("move_ur_to_start_pose","journal_experiments","move_ur_to_start_pose.py", "", "", ur_start_pose=ur_start_pose, mir_angle = mir_angle)
+        process = launch_ros_node("move_ur_to_start_pose","journal_experiments","move_ur_to_start_pose.py", "", "", ur_start_pose=ur_start_pose_array, mir_angle = mir_angle)
         
         while process.is_alive() and not rospy.is_shutdown():
                 rospy.sleep(0.1)
