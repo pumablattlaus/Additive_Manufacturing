@@ -9,8 +9,8 @@ import math
 class Create_path():
 
     def config(self):
-        self.start_pose.position.x = -2.5
-        self.target_pose.position.x = 2.5
+        self.start_pose.position.x = 46.5
+        self.start_pose.position.y = 39.0
         self.point_per_meter = 100
         self.dist = 100
         self.r_ur = 1.0
@@ -23,7 +23,7 @@ class Create_path():
         rospy.init_node("create_path_node")
         
         self.start_pose = Pose()
-        self.target_pose = Pose()
+        # self.target_pose = Pose()
         self.config()
         rospy.sleep(0.1)
         self.path_pub = rospy.Publisher("/mir_path", Path, queue_size=1)
@@ -60,8 +60,8 @@ class Create_path():
             
             pose.header.stamp = rospy.Duration(self.dt*i)
             
-            #pose.pose.position.x = self.start_pose.position.x + i/self.point_per_meter
-            #pose.pose.position.y = pose.pose.position.x*0.5 + 0.5 * math.sin(pose.pose.position.x)
+            pose.pose.position.x = self.start_pose.position.x + pose.pose.position.x
+            pose.pose.position.y = self.start_pose.position.y + pose.pose.position.y
             path.poses.append(pose)
             
             
@@ -85,6 +85,9 @@ class Create_path():
             ur_pose.pose.orientation.w = q_ur[3]
             
             ur_pose.header.stamp = rospy.Duration(self.dt*i)
+
+            ur_pose.pose.position.x = self.start_pose.position.x + ur_pose.pose.position.x
+            ur_pose.pose.position.y = self.start_pose.position.y + ur_pose.pose.position.y
             
             ur_path.poses.append(ur_pose)
         
