@@ -12,6 +12,16 @@ from copy import deepcopy
 import numpy as np
 from typing import Optional
 
+
+def rotateVector(vec=(0.0, 0.0, 0.0, 1.0), rot=(0.0, 0.0, 0.0, 1.0), transpose=False):
+    if transpose:
+        rot_conj = rot
+        rot = transformations.quaternion_conjugate(rot_conj)
+    else:
+        rot_conj = transformations.quaternion_conjugate(rot)
+    trans = transformations.quaternion_multiply(transformations.quaternion_multiply(rot_conj, vec), rot)[:3]
+    return trans
+
 class Control_ur():
     
     def config(self):
@@ -45,6 +55,8 @@ class Control_ur():
         # get the transform between mir and ur
         self.mir_ur_transform = Transform()
         self.get_mir_ur_transform()
+
+        self.q_ur_ideal_base = self.get_roation_ur_ideal_to_base()
         
         # start moving the mir
         self.mir_target_velocity = Twist()
@@ -104,24 +116,25 @@ class Control_ur():
                         
             # compute the control law (assumption: points are close enough to each other, so that there is no error if UR is on path)
             ur_twist_command = Twist()
-            error_lin = np.array([self.Kpx * (ur_target_pose_base.position.x + self.ur_pose.position.x) + self.Kp_lateral * x,
-                                  self.Kpy * (ur_target_pose_base.position.y + self.ur_pose.position.y) + self.Kp_lateral * y,
+            error_lin = np.array([self.Kpx * (ur_target_pose_base.position.x - self.ur_pose.position.x) + self.Kp_lateral * x,
+                                  self.Kpy * (ur_target_pose_base.position.y - self.ur_pose.position.y) + self.Kp_lateral * y,
                                   self.Kpz * (ur_target_pose_base.position.z - self.ur_pose.position.z)])
             
             # use path velcoities as feedforward
-            k_ff = 1.0 #0.5
-            ur_vel_path_local = self.compute_ur_target_vel_local(self.path_velocities_ur_direction[self.path_index][:3])
-            ur_twist_command.linear.x = k_ff*ur_vel_path_local[0] + error_lin[0]
-            ur_twist_command.linear.y = k_ff*ur_vel_path_local[1] + error_lin[1]
-            ur_twist_command.linear.z = k_ff*ur_vel_path_local[2] + error_lin[2]
+            k_ff = 0.0 #0.5
+            ur_vel_path_local = self.compute_ur_target_vel_local(self.path_velocities_ur_direction[self.path_index][:3]) # TODO: substract mir_velocities
+            ur_vel_path_base = rotateVector((ur_vel_path_local[0], ur_vel_path_local[1], ur_vel_path_local[2], 0.0), self.q_ur_ideal_base, transpose=False)
+            ur_twist_command.linear.x = k_ff*ur_vel_path_base[0] + error_lin[0]
+            ur_twist_command.linear.y = k_ff*ur_vel_path_base[1] + error_lin[1]
+            ur_twist_command.linear.z = k_ff*ur_vel_path_base[2] + error_lin[2]
             
             # debug_twist = TwistStamped()
             # debug_twist.header.stamp = rospy.Time.now()
             # debug_twist.header.frame_id = "mur620c/UR10_l/base_link"
             # debug_twist.twist = ur_twist_command
-            # debug_twist.twist.linear.x = ur_vel_path_local[0]
-            # debug_twist.twist.linear.y = ur_vel_path_local[1]
-            # debug_twist.twist.linear.z = ur_vel_path_local[2]
+            # debug_twist.twist.linear.x = ur_vel_path_base[0]
+            # debug_twist.twist.linear.y = ur_vel_path_base[1]
+            # debug_twist.twist.linear.z = ur_vel_path_base[2]
             # self.twist_debug_publisher.publish(debug_twist)
             
             
@@ -179,8 +192,8 @@ class Control_ur():
     def get_mir_ur_transform(self):
         tf_listener = tf.TransformListener()
         # wait for transform
-        tf_listener.waitForTransform(self.tf_prefix + "base_link", self.tf_prefix + self.ur_prefix + "/base_link", rospy.Time(0), rospy.Duration(4.0))
-        lin, ang = tf_listener.lookupTransform(self.tf_prefix + "base_link", self.tf_prefix + self.ur_prefix + "/base_link", rospy.Time(0))
+        tf_listener.waitForTransform(self.tf_prefix + "base_link", self.tf_prefix + self.ur_prefix + "/base_ideal", rospy.Time(0), rospy.Duration(4.0))
+        lin, ang = tf_listener.lookupTransform(self.tf_prefix + "base_link", self.tf_prefix + self.ur_prefix + "/base_ideal", rospy.Time(0))
         
         self.mir_ur_transform.translation.x = lin[0]
         self.mir_ur_transform.translation.y = lin[1]
@@ -190,6 +203,17 @@ class Control_ur():
         self.mir_ur_transform.rotation.y = q[1]
         self.mir_ur_transform.rotation.z = q[2]
         self.mir_ur_transform.rotation.w = q[3]
+
+    def get_roation_ur_ideal_to_base(self):
+        """ Get the quaternion, which rotates a pose from frame "ur_ideal" to "ur_base"
+        """
+        tf_listener = tf.TransformListener()
+        # wait for transform
+        tf_listener.waitForTransform(self.tf_prefix + self.ur_prefix + "/base", self.tf_prefix + self.ur_prefix + "/base_ideal", rospy.Time(0), rospy.Duration(4.0))
+        lin, q = tf_listener.lookupTransform(self.tf_prefix + self.ur_prefix + "/base", self.tf_prefix + self.ur_prefix + "/base_ideal", rospy.Time(0))
+        # q = transformations.quaternion_from_euler(ang[0], ang[1], ang[2])
+
+        return q
     
     def compute_nozzle_correction(self, sensor_angle, mir_angle):
         # compute the angle between the sensor and the ur tcp
@@ -300,12 +324,35 @@ class Control_ur():
         return e_phi, sensor_angle
         
     def compute_ur_target_pose_base(self,ur_target_pose_local):
-        # add the transform between mir and ur_base_link
+        # add the transform between mir and ur_base_link (base_ideal)
+        # self.mir_ur_transform in mir frame
+        # ur_target_pose_local in mir frame
+        # base_ideal same orientation as mir frame
         ur_target_pose_base = Pose()
-        ur_target_pose_base.position.x = ur_target_pose_local.position.x + self.mir_ur_transform.translation.x
-        ur_target_pose_base.position.y = ur_target_pose_local.position.y + self.mir_ur_transform.translation.y
+        ur_target_pose_base.position.x = -ur_target_pose_local.position.x - self.mir_ur_transform.translation.x
+        ur_target_pose_base.position.y = -ur_target_pose_local.position.y - self.mir_ur_transform.translation.y
         ur_target_pose_base.position.z = ur_target_pose_local.position.z - self.mir_ur_transform.translation.z
         ur_target_pose_base.orientation.w = 1.0
+
+        ## TRANSFORM FROM base_ideal to base
+        # r_mat = self.transformation_ur_ideal_base[:3,:3]
+        # position = np.matmul(r_mat, np.array([ur_target_pose_base.position.x, ur_target_pose_base.position.y, ur_target_pose_base.position.z]))
+        # P  = [p1, p2, p3,0]  <-- point vector
+        #  R  = [x,  y,  z,w]  <-- rotation
+        # P' = RPR'
+        # see rotateVector()
+
+        
+        # rotate ur_target_pose_base.position and orientation by q_ur_ideal_base:
+        
+        position = rotateVector((ur_target_pose_base.position.x, ur_target_pose_base.position.y, ur_target_pose_base.position.z, 0.0), self.q_ur_ideal_base, transpose=False)
+        # position = transformations.quaternion_multiply(transformations.quaternion_multiply(self.q_ur_ideal_base, [ur_target_pose_base.position.x, ur_target_pose_base.position.y, ur_target_pose_base.position.z, 0.0]), transformations.quaternion_conjugate(self.q_ur_ideal_base))[:3]
+        orientation = transformations.quaternion_multiply(self.q_ur_ideal_base, ur_target_pose_base.orientation.__reduce__()[2])[:4]
+        # orientation = 
+
+        ur_target_pose_base.position.x, ur_target_pose_base.position.y, ur_target_pose_base.position.z = position
+        ur_target_pose_base.orientation.x, ur_target_pose_base.orientation.y, ur_target_pose_base.orientation.z, ur_target_pose_base.orientation.w = orientation
+        
 
         # ur_ideal_frame = self.tf_prefix + "/" + self.ur_prefix + "/base_ideal"
         # ur_target_pose_base_stamped = PoseStamped()
@@ -316,7 +363,7 @@ class Control_ur():
         # ur_target_pose_base = self.listener.transformPose(self.ur_base_link_frame_id, ur_target_pose_base_stamped).pose
 
         # broadcast target pose
-        self.ur_target_pose_broadcaster.sendTransform((ur_target_pose_base.position.x, ur_target_pose_base.position.y, ur_target_pose_base.position.z), (ur_target_pose_base.orientation.x, ur_target_pose_base.orientation.y, ur_target_pose_base.orientation.z, ur_target_pose_base.orientation.w), rospy.Time.now(), "target_point", self.ur_base_link_frame_id)
+        self.ur_target_pose_broadcaster.sendTransform((ur_target_pose_base.position.x, ur_target_pose_base.position.y, ur_target_pose_base.position.z), (ur_target_pose_base.orientation.x, ur_target_pose_base.orientation.y, ur_target_pose_base.orientation.z, ur_target_pose_base.orientation.w), rospy.Time.now(), "target_point", self.ur_base_link_frame_id) #ur/base
         return ur_target_pose_base
     
     
@@ -340,12 +387,13 @@ class Control_ur():
         # limit acceleration
         if abs(ur_command.linear.x - ur_command_old.linear.x) > self.ur_acceleration_limit:
             vel_scale = self.ur_acceleration_limit / abs(ur_command.linear.x - ur_command_old.linear.x)
-            print("limiting acceleration")
+            rospy.loginfo("limiting acceleration")
         if abs(ur_command.linear.y - ur_command_old.linear.y) > self.ur_acceleration_limit and abs(ur_command.linear.y - ur_command_old.linear.y) * vel_scale > self.ur_acceleration_limit:
             vel_scale = self.ur_acceleration_limit / abs(ur_command.linear.y - ur_command_old.linear.y)
-            print("limiting acceleration")
+            rospy.loginfo("limiting acceleration")
         if abs(ur_command.linear.z - ur_command_old.linear.z) > self.ur_acceleration_limit and abs(ur_command.linear.z - ur_command_old.linear.z) * vel_scale > self.ur_acceleration_limit:
             vel_scale = self.ur_acceleration_limit / abs(ur_command.linear.z - ur_command_old.linear.z)
+            rospy.loginfo("limiting acceleration")
             
         # apply vel_scale
         ur_command.linear.x = ur_command.linear.x * vel_scale
