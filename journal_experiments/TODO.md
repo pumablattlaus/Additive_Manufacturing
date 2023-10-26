@@ -9,6 +9,8 @@
 - No PointCloud!
   - lateral_nozzle_pose_override is set to 0 in control_ur
 
+- speed feedforward not working (substract induced mir_vel)
+
 ## Future
 - for error: take only part orthogonal to path
   - use n path-points before and after current point if short distance between points
