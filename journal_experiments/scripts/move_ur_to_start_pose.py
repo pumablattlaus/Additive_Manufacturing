@@ -30,7 +30,7 @@ class MoveURToStartPose():
         
         self.ur_command = Twist()
         self.ur_command_old = Twist()
-        ur_start_pose_array = rospy.get_param("~ur_start_pose", [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+        ur_start_pose_array = rospy.get_param("~ur_start_pose", [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]) # in ur/base frame
         self.ur_start_pose = Pose()
         self.ur_start_pose.position.x = ur_start_pose_array[0]
         self.ur_start_pose.position.y = ur_start_pose_array[1]

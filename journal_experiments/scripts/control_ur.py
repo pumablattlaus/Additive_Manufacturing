@@ -45,6 +45,8 @@ class Control_ur():
         # get the transform between mir and ur
         self.mir_ur_transform = Transform()
         self.get_mir_ur_transform()
+
+        self.q_ur_ideal_base = self.get_roation_ur_ideal_to_base()
         
         # start moving the mir
         self.mir_target_velocity = Twist()
@@ -190,6 +192,16 @@ class Control_ur():
         self.mir_ur_transform.rotation.y = q[1]
         self.mir_ur_transform.rotation.z = q[2]
         self.mir_ur_transform.rotation.w = q[3]
+
+    def get_roation_ur_ideal_to_base(self):
+        """ Get the quaternion, which rotates a pose from frame "ur_ideal" to "ur_base"
+        """
+        tf_listener = tf.TransformListener()
+        # wait for transform
+        tf_listener.waitForTransform(self.tf_prefix + self.ur_prefix + "/base", self.tf_prefix + self.ur_prefix + "/base_ideal", rospy.Time(0), rospy.Duration(4.0))
+        lin, ang = tf_listener.lookupTransform(self.tf_prefix + self.ur_prefix + "/base", self.tf_prefix + self.ur_prefix + "/base_ideal", rospy.Time(0))
+        q = transformations.quaternion_from_euler(ang[0], ang[1], ang[2])
+        return q
     
     def compute_nozzle_correction(self, sensor_angle, mir_angle):
         # compute the angle between the sensor and the ur tcp
@@ -300,12 +312,20 @@ class Control_ur():
         return e_phi, sensor_angle
         
     def compute_ur_target_pose_base(self,ur_target_pose_local):
-        # add the transform between mir and ur_base_link
+        # add the transform between mir and ur_base_link (base_ideal)
         ur_target_pose_base = Pose()
         ur_target_pose_base.position.x = ur_target_pose_local.position.x + self.mir_ur_transform.translation.x
         ur_target_pose_base.position.y = ur_target_pose_local.position.y + self.mir_ur_transform.translation.y
         ur_target_pose_base.position.z = ur_target_pose_local.position.z - self.mir_ur_transform.translation.z
         ur_target_pose_base.orientation.w = 1.0
+
+        # rotate ur_target_pose_base.position and orientation by q_ur_ideal_base:
+        position = transformations.quaternion_multiply(transformations.quaternion_multiply(self.q_ur_ideal_base, [ur_target_pose_base.position.x, ur_target_pose_base.position.y, ur_target_pose_base.position.z, 0.0]), transformations.quaternion_conjugate(self.q_ur_ideal_base))[:3]
+        orientation = transformations.quaternion_multiply(self.q_ur_ideal_base, ur_target_pose_base.orientation.__reduce__()[2])[:4]
+
+        ur_target_pose_base.position.x, ur_target_pose_base.position.y, ur_target_pose_base.position.z = position
+        ur_target_pose_base.orientation.x, ur_target_pose_base.orientation.y, ur_target_pose_base.orientation.z, ur_target_pose_base.orientation.w = orientation
+        
 
         # ur_ideal_frame = self.tf_prefix + "/" + self.ur_prefix + "/base_ideal"
         # ur_target_pose_base_stamped = PoseStamped()
