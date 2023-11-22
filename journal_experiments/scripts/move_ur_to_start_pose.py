@@ -30,7 +30,7 @@ class MoveURToStartPose():
         
         self.ur_command = Twist()
         self.ur_command_old = Twist()
-        ur_start_pose_array = rospy.get_param("~ur_start_pose", [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+        ur_start_pose_array = rospy.get_param("~ur_start_pose", [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]) # in ur/base frame
         self.ur_start_pose = Pose()
         self.ur_start_pose.position.x = ur_start_pose_array[0]
         self.ur_start_pose.position.y = ur_start_pose_array[1]
@@ -54,7 +54,7 @@ class MoveURToStartPose():
         robot_names = rospy.get_param("~robot_names", ["mur620c"])
         pub_start_pose = rospy.Publisher("/start_pose_ur", PoseStamped, queue_size=1, latch=True)
         pose_pub = PoseStamped()
-        pose_pub.header.frame_id = robot_names[0] + "/UR10_r/base_link"
+        pose_pub.header.frame_id = robot_names[0] + "/UR10_l/base"
         pose_pub.pose = self.ur_start_pose
         pub_start_pose.publish(pose_pub)
 

@@ -48,6 +48,7 @@ class Control_ur_helper():
         rospy.Subscriber(self.lateral_nozzle_pose_override_topic, Float32,  self.lateral_nozzle_pose_override_callback)
 
     def ur_pose_callback(self, data = PoseStamped()):
+        data = self.base_node.listener.transformPose(self.base_node.ur_base_link_frame_id, data)
         self.base_node.ur_pose = data.pose
         
     def mir_cmd_vel_callback(self, msg = Twist()):
@@ -84,8 +85,8 @@ class Control_ur_helper():
         ddynrec.add_variable("ur_target_velocity", "float/double variable", 0.1, 0, 0.3)
         ddynrec.add_variable("ur_velocity_limit", "float/double variable", 0.15, 0, 0.3)
         ddynrec.add_variable("ur_acceleration_limit", "float/double variable", 0.9, 0, 2.0)
-        ddynrec.add_variable("Kpx", "float/double variable", -0.7, -1.0, 1.0)
-        ddynrec.add_variable("Kpy", "float/double variable", -0.7, -1.0, 1.0)
+        ddynrec.add_variable("Kpx", "float/double variable", 0.7, -1.0, 1.0)
+        ddynrec.add_variable("Kpy", "float/double variable", 0.7, -1.0, 1.0)
         ddynrec.add_variable("Kpz", "float/double variable", 0.50, -1.0, 1.0)
         ddynrec.add_variable("Kp_phi", "float/double variable", 0.0002, -1.0, 1.0)
         ddynrec.add_variable("Kp_mir", "float/double variable", 0.1, -1.0, 1.0)

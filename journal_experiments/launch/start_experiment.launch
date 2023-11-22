@@ -41,7 +41,7 @@
         mur620c/move_to_start_pose/mir_cmd_vel_topic: "/$(arg tf_prefix)/cmd_vel"
         move_ur_to_start_pose/ur_command_topic: "/$(arg tf_prefix)/$(arg ur_prefix)/twist_controller/command_safe"
         move_ur_to_start_pose/ur_pose_topic: "/$(arg tf_prefix)/$(arg ur_prefix)/ur_calibrated_pose"
-        move_ur_to_start_pose/ur_base_link_frame_id: "$(arg tf_prefix)/$(arg ur_prefix)/base_link"
+        move_ur_to_start_pose/ur_base_link_frame_id: "$(arg tf_prefix)/$(arg ur_prefix)/base"
 
         move_ur_to_start_pose/ur_target_tolerance_trans: 0.1
         move_ur_to_start_pose/ur_target_tolerance_rot: 0.5
@@ -55,14 +55,14 @@
         control_ur/ur_command_topic: "/$(arg tf_prefix)/$(arg ur_prefix)/twist_controller/command_safe"
         control_ur/mir_pose_topic : /$(arg tf_prefix)/mir_pose_simple
         control_ur/ur_pose_topic: "/$(arg tf_prefix)/$(arg ur_prefix)/ur_calibrated_pose"
-        control_ur/ur_base_link_frame_id: "$(arg tf_prefix)/$(arg ur_prefix)/base_link"
+        control_ur/ur_base_link_frame_id: "$(arg tf_prefix)/$(arg ur_prefix)/base"
         control_ur/ur_prefix: "$(arg ur_prefix)"
 
         control_mir/mir_cmd_vel_topic_relative: "cmd_vel"
     </rosparam>
 </group>
 
-<node pkg="tf2_ros" type="static_transform_publisher" name="sensor_transform" args="0 0 0 0 0 0 mur620c/$(arg ur_prefix)/tool0 sensor_frame" output="screen" if="$(arg fake_sensor_frame)"/>
+<node pkg="tf2_ros" type="static_transform_publisher" name="sensor_transform" args="0 0 0 0 0 0 $(arg tf_prefix)/$(arg ur_prefix)/tool0 sensor_frame" output="screen" if="$(arg fake_sensor_frame)"/>
 
 
 <!-- start the state machine -->

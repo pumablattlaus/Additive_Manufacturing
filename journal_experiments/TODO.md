@@ -1,64 +1,15 @@
 # TODO for SImualtion of journal_experiments
 
-## Launch
-
-```bash
-roslaunch journal_experiments mur_sim.launch
-roslaunch journal_experiments start_experiment.launch
-```
-
-wait for URs to reach home pose, then:
-
-```bash
-roslaunch journal_experiments twist_sim.launch
-```
-
-Start Ur is at (52.411910, 43.385410) for trafo (set rostopic pub /wall_frame_base)
-
-### Poses for circle (TODO: implement publisher)
-```bash
-rostopic pub /dropper/mir_pickup geometry_msgs/PoseStamped "header:
-  seq: 0
-  stamp:
-    secs: 0
-    nsecs: 0
-  frame_id: 'map'
-pose:
-  position:
-    x: 0.0
-    y: 3.0
-    z: 0.0
-  orientation:
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0"
-```
-
-```bash
-rostopic pub /dropper/mir_wait geometry_msgs/PoseStamped "header:
-  seq: 0
-  stamp:
-    secs: 0
-    nsecs: 0
-  frame_id: 'map'
-pose:
-  position:
-    x: 1.0
-    y: 3.0
-    z: 0.0
-  orientation:
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0"
-```
-
 ## Problems
+
+- **ur_control.py**: check ur_target_pose_base etc.: ur is more or less staying at start_pose
+
 - Twist Controller: orientation control correct?
 
 - No PointCloud!
   - lateral_nozzle_pose_override is set to 0 in control_ur
+
+- speed feedforward not working (substract induced mir_vel)
 
 ## Future
 - for error: take only part orthogonal to path
