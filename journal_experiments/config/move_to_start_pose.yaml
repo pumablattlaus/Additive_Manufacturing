@@ -1,0 +1,10 @@
+move_to_start_pose:
+  KP : 0.5
+  angle_tolerance : 0.02
+  control_rate : 50
+  target_pose : [2,0,0]
+  mir_cmd_vel_topic : "/mur620d/cmd_vel"
+  mir_pose_topic : "/mur620d/mir_pose_simple"
+  linear_vel_limit : 0.1
+  angular_vel_limit : 0.2
+  initial_linear_tolerance : 0.15

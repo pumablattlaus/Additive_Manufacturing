@@ -22,12 +22,15 @@ class MoveURToStartPose():
         self.ur_target_tolerance_rot = rospy.get_param("~ur_target_tolerance_rot", 0.01)
         self.ur_scanner_angular_offset = rospy.get_param("~ur_scanner_angular_offset", -math.pi)
         self.mir_angle = rospy.get_param("~mir_angle", 0.0)
+        self.ur_command_topic = rospy.get_param("~ur_command_topic", "/mur620c/UR10_r/twist_controller/command_safe")
+        self.ur_pose_topic = rospy.get_param("~ur_pose_topic", "/mur620c/UR10_r/ur_calibrated_pose")
+        self.ur_base_link_frame_id = rospy.get_param("~ur_base_link_frame_id", "mur620c/UR10_r/base_link")
         pass
     
     
     def __init__(self):
         rospy.init_node("control_ur_node")
-        
+        self.config()
         self.ur_command = Twist()
         self.ur_command_old = Twist()
         ur_start_pose_array = rospy.get_param("~ur_start_pose", [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]) # in ur/base frame
@@ -40,15 +43,11 @@ class MoveURToStartPose():
         self.ur_start_pose.orientation.z = ur_start_pose_array[5]
         self.ur_start_pose.orientation.w = ur_start_pose_array[6]
         
-        self.ur_command_topic = rospy.get_param("~ur_command_topic", "/mur620c/UR10_r/twist_controller/command_safe")
-        self.ur_pose_topic = rospy.get_param("~ur_pose_topic", "/mur620c/UR10_r/ur_calibrated_pose")
-        self.ur_base_link_frame_id = rospy.get_param("~ur_base_link_frame_id", "mur620c/UR10_r/base_link")
+        
         self.ur_twist_publisher = rospy.Publisher(self.ur_command_topic, Twist, queue_size=1)
         self.ur_target_pose_broadcaster = tf.TransformBroadcaster()
         
         rospy.Subscriber(self.ur_pose_topic, PoseStamped, self.ur_pose_callback)
-        
-        self.config()
         
         # For Debugging:
         robot_names = rospy.get_param("~robot_names", ["mur620c"])

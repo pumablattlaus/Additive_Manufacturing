@@ -1,5 +1,5 @@
 <launch>
-<arg name="sim" default="true" />
+<arg name="sim" default="false" />
 <arg name="fake_sensor_frame" default="true" />
 <arg name="ur_prefix" default="UR10_l" />
 <arg name="tf_prefix" default="mur620c" />
@@ -72,6 +72,10 @@
     </rosparam>
 </node>
 
-
+<group ns= "$(arg tf_prefix)">
+    <!-- load config files -->
+    <rosparam file="$(find journal_experiments)/config/move_to_start_pose.yaml" command="load" subst_value="true"/>
+    <rosparam file="$(find journal_experiments)/config/move_ur_to_start_pose.yaml" command="load" subst_value="true"/>
+</group>
 
 </launch>
