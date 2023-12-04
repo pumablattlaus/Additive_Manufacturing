@@ -12,6 +12,8 @@ from copy import deepcopy
 import numpy as np
 from typing import Optional
 
+from match_lib.robot_mats.jacobians.jacobian_platform import getJacobianPlatformWithEEF
+
 
 def rotateVector(vec=(0.0, 0.0, 0.0, 1.0), rot=(0.0, 0.0, 0.0, 1.0), transpose=False):
     if transpose:
@@ -122,7 +124,8 @@ class Control_ur():
             
             # use path velcoities as feedforward
             k_ff = 0.0 #0.5
-            ur_vel_path_local = self.compute_ur_target_vel_local(self.path_velocities_ur_direction[self.path_index][:3]) # TODO: substract mir_velocities
+            ur_vel_path_local = self.compute_ur_target_vel_local(self.path_velocities_ur_direction[self.path_index][:3])
+            ur_vel_path_local -= self.get_ee_vel_induced_by_mir(self.mir_cmd_vel.linear.x, 0, self.mir_cmd_vel.angular.z)
             ur_vel_path_base = rotateVector((ur_vel_path_local[0], ur_vel_path_local[1], ur_vel_path_local[2], 0.0), self.q_ur_ideal_base, transpose=False)
             ur_twist_command.linear.x = k_ff*ur_vel_path_base[0] + error_lin[0]
             ur_twist_command.linear.y = k_ff*ur_vel_path_base[1] + error_lin[1]
@@ -301,6 +304,15 @@ class Control_ur():
         ur_target_vel_local[2] = ur_target_vel_global[2]
         return ur_target_vel_local
     
+    def get_ee_vel_induced_by_mir(self, mir_vel_local: np.ndarray = np.zeros(3)):
+        # get vector from mir_base to ee:
+        rx,ry = self.ur_pose.position.x, self.ur_pose.position.y
+        rx = rx + self.mir_ur_transform.translation.x
+        ry = ry + self.mir_ur_transform.translation.y
+        
+        j_p = getJacobianPlatformWithEEF(rx, ry)
+        return j_p@mir_vel_local
+        
     def compute_e_phi(self,ur_target_pose_global):
         # compute current tcp angle
         ur_target_phi = transformations.euler_from_quaternion([ur_target_pose_global.orientation.x, ur_target_pose_global.orientation.y, ur_target_pose_global.orientation.z, ur_target_pose_global.orientation.w])[2]
