@@ -11,19 +11,20 @@ class Control_ur_helper():
     def __init__(self,base_node):
         self.base_node = base_node
         
-        self.base_node.ur_command_topic = rospy.get_param("~ur_command_topic", "/mur620c/UR10_r/twist_controller/command_safe")
-        self.base_node.ur_pose_topic = rospy.get_param("~ur_pose_topic", "/mur620c/UR10_r/ur_calibrated_pose")
-        self.base_node.mir_pose_topic = rospy.get_param("~mir_pose_topic", "/mur620c/robot_pose")
+        self.base_node.ur_command_topic = rospy.get_param("~ur_command_topic", "/mur620d/UR10_r/twist_controller/command_safe")
+        self.base_node.ur_pose_topic = rospy.get_param("~ur_pose_topic", "/mur620d/UR10_r/ur_calibrated_pose")
+        self.base_node.mir_pose_topic = rospy.get_param("~mir_pose_topic", "/mur620d/robot_pose")
         self.lateral_nozzle_pose_override_topic = rospy.get_param("~lateral_nozzle_pose_override_topic", "/lateral_nozzle_pose_override")
         self.base_node.lateral_nozzle_pose_override = 0.0
-        self.base_node.ur_base_link_frame_id = rospy.get_param("~ur_base_link_frame_id", "mur620c/UR10_r/base_link")
-        self.base_node.mir_cmd_vel_topic = rospy.get_param("~mir_cmd_vel_topic", "/mur620c/cmd_vel")
-        self.base_node.tf_prefix = rospy.get_param("~tf_prefix", "mur620c/")
+        self.base_node.ur_base_link_frame_id = rospy.get_param("~ur_base_link_frame_id", "mur620d/UR10_r/base_link")
+        self.base_node.mir_cmd_vel_topic = rospy.get_param("~mir_cmd_vel_topic", "/mur620d/cmd_vel")
+        self.base_node.tf_prefix = rospy.get_param("~tf_prefix", "mur620d/")
         self.base_node.ur_prefix = rospy.get_param("~ur_prefix", "UR10_l")
         self.base_node.ur_twist_publisher = rospy.Publisher(self.base_node.ur_command_topic, Twist, queue_size=1)
         self.base_node.ur_target_pose_broadcaster = TransformBroadcaster()
         self.base_node.listener = TransformListener()
         self.base_node.initial_run = True
+        self.tf_prefix = rospy.get_param("~tf_prefix", "mur620d")
 
         self.base_node.path_index_publisher = rospy.Publisher('/path_index', Int32, queue_size=1)
         self.base_node.mir_target_velocity_publisher = rospy.Publisher('/mir_target_velocity', Twist, queue_size=1)
@@ -39,8 +40,8 @@ class Control_ur_helper():
         self.base_node.path_index_timestamp = rospy.Time.now()
 
         # get transform from sensor frame to ur tcp
-        self.base_node.listener.waitForTransform("sensor_frame", "mur620c/"+self.base_node.ur_prefix+"/tool0", rospy.Time(0), rospy.Duration(4.0))
-        self.base_node.sensor_to_tcp = self.base_node.listener.lookupTransform("sensor_frame", "mur620c/"+self.base_node.ur_prefix+"/tool0", rospy.Time(0))
+        self.base_node.listener.waitForTransform("sensor_frame", self.tf_prefix +"/"+self.base_node.ur_prefix+"/tool0", rospy.Time(0), rospy.Duration(4.0))
+        self.base_node.sensor_to_tcp = self.base_node.listener.lookupTransform("sensor_frame", self.tf_prefix + "/" +self.base_node.ur_prefix+"/tool0", rospy.Time(0))
 
         self.setup_ddynamic_reconfigure()
         rospy.Subscriber(self.base_node.ur_pose_topic, PoseStamped, self.ur_pose_callback)

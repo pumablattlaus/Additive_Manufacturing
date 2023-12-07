@@ -87,7 +87,7 @@ class Move_UR_to_start_pose(smach.State):
 
     def execute(self, userdata):
 
-        return 'ur_in_start_pose'
+        #return 'ur_in_start_pose'
 
         # Just for debugging:
         pub_ur_path_start = rospy.Publisher("/ur_path_start", PoseStamped, queue_size=1, latch=True)

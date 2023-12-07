@@ -6,10 +6,10 @@
 
 <group if="$(arg sim)">
     <rosparam subst_value="true">
-        mur620c/move_to_start_pose/mir_cmd_vel_topic: "/mur620c/mobile_base_controller/cmd_vel"
-        move_ur_to_start_pose/ur_command_topic: "/mur620c/$(arg ur_prefix)/twist_controller/command_safe"
-        move_ur_to_start_pose/ur_pose_topic: "/mur620c/$(arg ur_prefix)/ur_calibrated_pose"
-        move_ur_to_start_pose/ur_base_link_frame_id: "mur620c/$(arg ur_prefix)/base_link"
+        mur620d/move_to_start_pose/mir_cmd_vel_topic: "/mur620d/mobile_base_controller/cmd_vel"
+        move_ur_to_start_pose/ur_command_topic: "/mur620d/$(arg ur_prefix)/twist_controller/command_safe"
+        move_ur_to_start_pose/ur_pose_topic: "/mur620d/$(arg ur_prefix)/ur_calibrated_pose"
+        move_ur_to_start_pose/ur_base_link_frame_id: "mur620d/$(arg ur_prefix)/base_link"
 
         move_ur_to_start_pose/ur_target_tolerance_trans: 0.1
         move_ur_to_start_pose/ur_target_tolerance_rot: 0.5
@@ -19,16 +19,16 @@
         move_ur_to_start_pose/Kpz: 0.5
         move_ur_to_start_pose/Kp_phi: 0.1
 
-        control_ur/mir_cmd_vel_topic: "/mur620c/mobile_base_controller/cmd_vel"
-        control_ur/ur_command_topic: "/mur620c/$(arg ur_prefix)/twist_controller/command_safe"
-        control_ur/mir_pose_topic : /mur620c/mir_pose_simple
-        control_ur/ur_pose_topic: "/mur620c/$(arg ur_prefix)/ur_calibrated_pose"
-        control_ur/ur_base_link_frame_id: "mur620c/$(arg ur_prefix)/base_link"
+        control_ur/mir_cmd_vel_topic: "/mur620d/mobile_base_controller/cmd_vel"
+        control_ur/ur_command_topic: "/mur620d/$(arg ur_prefix)/twist_controller/command_safe"
+        control_ur/mir_pose_topic : /mur620d/mir_pose_simple
+        control_ur/ur_pose_topic: "/mur620d/$(arg ur_prefix)/ur_calibrated_pose"
+        control_ur/ur_base_link_frame_id: "mur620d/$(arg ur_prefix)/base_link"
         control_ur/ur_prefix: "$(arg ur_prefix)"
 
         control_mir/mir_cmd_vel_topic_relative: "mobile_base_controller/cmd_vel"
 
-        calibrated_pose_fake/namespace: "mur620c/$(arg ur_prefix)/"
+        calibrated_pose_fake/namespace: "mur620d/$(arg ur_prefix)/"
     </rosparam>
     <node name="calibrated_pose_fake" pkg="journal_experiments" type="calibrated_pose_fake.py" output="screen" />
 
@@ -38,7 +38,7 @@
 <group unless="$(arg sim)">
     <rosparam param="/state_machine/robot_names" subst_value="True">["$(arg tf_prefix)"]</rosparam>
     <rosparam subst_value="true">
-        mur620c/move_to_start_pose/mir_cmd_vel_topic: "/$(arg tf_prefix)/cmd_vel"
+        mur620d/move_to_start_pose/mir_cmd_vel_topic: "/$(arg tf_prefix)/cmd_vel"
         move_ur_to_start_pose/ur_command_topic: "/$(arg tf_prefix)/$(arg ur_prefix)/twist_controller/command_safe"
         move_ur_to_start_pose/ur_pose_topic: "/$(arg tf_prefix)/$(arg ur_prefix)/ur_calibrated_pose"
         move_ur_to_start_pose/ur_base_link_frame_id: "$(arg tf_prefix)/$(arg ur_prefix)/base"
@@ -76,6 +76,7 @@
     <!-- load config files -->
     <rosparam file="$(find journal_experiments)/config/move_to_start_pose.yaml" command="load" subst_value="true"/>
     <rosparam file="$(find journal_experiments)/config/move_ur_to_start_pose.yaml" command="load" subst_value="true"/>
+    <rosparam file="$(find journal_experiments)/config/control_ur.yaml" command="load" subst_value="true"/>
 </group>
 
 </launch>

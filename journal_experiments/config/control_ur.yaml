@@ -1,0 +1,10 @@
+control_ur:
+  base_node.ur_command_topic : "/mur620d/UR10_l/twist_controller/command_safe"
+  base_node.ur_pose_topic :  "/mur620d/UR10_l/ur_calibrated_pose"
+  base_node.mir_pose_topic :  "/mur620d/robot_pose"
+  lateral_nozzle_pose_override_topic :  "/lateral_nozzle_pose_override"
+  base_node.ur_base_link_frame_id :  "mur620d/UR10_l/base_link"
+  base_node.mir_cmd_vel_topic :  "/mur620d/cmd_vel"
+  base_node.tf_prefix :  "mur620d/"
+  base_node.ur_prefix :  "UR10_l"
+  tf_prefix :  "mur620d"
