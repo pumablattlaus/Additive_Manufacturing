@@ -12,18 +12,14 @@ from std_msgs.msg import Int32
 
 class Control_mir_node():
 
-    def __init__(self):
+    def config(self):
         self.mir_cmd_vel_topic_relative = rospy.get_param("~mir_cmd_vel_topic_relative", "cmd_vel")
         self.mir_pose_topic_relative = rospy.get_param("~mir_pose_topic_relative", "mir_pose_simple")
         self.external_control = rospy.get_param("~external_control", True)
         self.path_array = rospy.get_param("~path_array", [])
         self.relative_positions_x = rospy.get_param("~relative_positions_x", [0])
         self.relative_positions_y = rospy.get_param("~relative_positions_y", [0])
-        self.robot_names = rospy.get_param("~robot_names", ["mur620c"])
-        self.mir_poses = [Pose() for i in range(len(self.robot_names))]
-        self.target_pose_broadcaster = broadcaster.TransformBroadcaster()
-        self.current_vel = 0.0
-        self.current_omega = 0.0
+        self.robot_names = rospy.get_param("~robot_names", ["mur620d"])
         self.Kx = rospy.get_param("~Kx", 0.5)
         self.Ky = rospy.get_param("~Ky", 1.0)
         self.Kphi = rospy.get_param("~Kphi", 0.4)
@@ -36,6 +32,35 @@ class Control_mir_node():
         self.velocity_limit_ang = rospy.get_param("~velocity_limit_ang", 0.5)
         self.acceleration_limit_lin = rospy.get_param("~acceleration_limit_lin", 1.0)
         self.acceleration_limit_ang = rospy.get_param("~acceleration_limit_ang", 1.0)
+
+        print("mir_cmd_vel_topic_relative:", self.mir_cmd_vel_topic_relative)
+        print("mir_pose_topic_relative:", self.mir_pose_topic_relative)
+        print("external_control:", self.external_control)
+        print("relative_positions_x:", self.relative_positions_x)
+        print("relative_positions_y:", self.relative_positions_y)
+        print("robot_names:", self.robot_names)
+        print("Kx:", self.Kx)
+        print("Ky:", self.Ky)
+        print("Kphi:", self.Kphi)
+        print("KP_vel:", self.KP_vel)
+        print("KP_omega:", self.KP_omega)
+        print("target_vel_lin:", self.target_vel_lin)
+        print("safety_margin:", self.safety_margin)
+        print("control_rate:", self.control_rate)
+        print("velocity_limit_lin:", self.velocity_limit_lin)
+        print("velocity_limit_ang:", self.velocity_limit_ang)
+        print("acceleration_limit_lin:", self.acceleration_limit_lin)
+        print("acceleration_limit_ang:", self.acceleration_limit_ang)
+
+
+
+    def __init__(self):
+        self.config()
+        self.mir_poses = [Pose() for i in range(len(self.robot_names))]
+        self.target_pose_broadcaster = broadcaster.TransformBroadcaster()
+        self.current_vel = 0.0
+        self.current_omega = 0.0
+
         self.robot_path_publishers = []
         self.robot_twist_publishers = []
         self.metadata_publisher = Metadata_publisher()
@@ -44,6 +69,8 @@ class Control_mir_node():
         for i in range(len(self.robot_names)):
             self.robot_path_publishers.append(rospy.Publisher(self.robot_names[i] + '/robot_path', Path, queue_size=1))
             self.robot_twist_publishers.append(rospy.Publisher(self.robot_names[i] +'/'+self.mir_cmd_vel_topic_relative, Twist, queue_size=1))
+
+        self.virtual_leader_cmd_vel_publisher = rospy.Publisher('/virtual_leader/cmd_vel', Twist, queue_size=1)
 
         for i in range(len(self.robot_names)):
             rospy.Subscriber(self.robot_names[i] + '/'+self.mir_pose_topic_relative, Pose, self.mir_pose_callback, i)   
@@ -244,7 +271,7 @@ class Control_mir_node():
                 current_thetas[i] += target_omegas[i] * dt.to_sec()
                 current_distances[i] += target_vels[i] * dt.to_sec()
             timestamp_old = now
-            
+
             # compute control law and publish target velocities
             for i in range(len(self.robot_names)):
                 target_velocity = Twist()
@@ -263,6 +290,9 @@ class Control_mir_node():
                 target_velocity.linear.x = u_v  
                 target_velocity.angular.z = v_w 
                 self.robot_twist_publishers[i].publish(target_velocity)
+
+            # publish virtual leader velocity
+            self.virtual_leader_cmd_vel_publisher.publish(target_velocity)
 
             rate.sleep()
 

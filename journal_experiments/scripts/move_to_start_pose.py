@@ -20,7 +20,7 @@ class Move_to_start_pose():
         self.linear_vel_limit = rospy.get_param("~linear_vel_limit", 0.1)
         self.angular_vel_limit =    rospy.get_param("~angular_vel_limit", 0.2)
         self.initial_linear_tolerance = rospy.get_param("~initial_linear_tolerance", 0.15)
-        rospy.set_param("~test", 1)
+
 
     def __init__(self):
         self.config()

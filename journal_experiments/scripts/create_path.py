@@ -9,8 +9,8 @@ import math
 class Create_path():
 
     def config(self):
-        self.start_pose.position.x = 41.4
-        self.start_pose.position.y = 33.2
+        self.start_pose.position.x = 42.6
+        self.start_pose.position.y = 36.3
         self.point_per_meter = 100
         self.dist = 100
         self.r_ur = 1.0

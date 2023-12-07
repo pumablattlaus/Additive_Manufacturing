@@ -1,7 +1,8 @@
 #! /usr/bin/env python3
 import rospy
 from geometry_msgs.msg import PoseStamped, Pose, Twist
-import tf
+#import tf
+from tf import TransformBroadcaster, TransformListener
 from ddynamic_reconfigure_python.ddynamic_reconfigure import DDynamicReconfigure
 from std_msgs.msg import Int32, Int16, Float32
 
@@ -20,8 +21,8 @@ class Control_ur_helper():
         self.base_node.tf_prefix = rospy.get_param("~tf_prefix", "mur620c/")
         self.base_node.ur_prefix = rospy.get_param("~ur_prefix", "UR10_l")
         self.base_node.ur_twist_publisher = rospy.Publisher(self.base_node.ur_command_topic, Twist, queue_size=1)
-        self.base_node.ur_target_pose_broadcaster = tf.TransformBroadcaster()
-        self.base_node.listener = tf.TransformListener()
+        self.base_node.ur_target_pose_broadcaster = TransformBroadcaster()
+        self.base_node.listener = TransformListener()
         self.base_node.initial_run = True
 
         self.base_node.path_index_publisher = rospy.Publisher('/path_index', Int32, queue_size=1)

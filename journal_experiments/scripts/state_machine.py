@@ -17,7 +17,7 @@ path = Path();
 ur_path = Path();
 # No private parameters are used because there is nodename yet
 active_robots = rospy.get_param("/state_machine/active_robots", 1)
-robot_names = rospy.get_param("/state_machine/robot_names", ["mur620c"])
+robot_names = rospy.get_param("/state_machine/robot_names", ["mur620d"])
 ur_prefixes = rospy.get_param("/state_machine/ur_prefixes", ["UR10_l"])
 relative_positions_x = rospy.get_param("/state_machine/relative_positions_x", [0])
 relative_positions_y = rospy.get_param("/state_machine/relative_positions_y", [0])
@@ -86,6 +86,8 @@ class Move_UR_to_start_pose(smach.State):
         
 
     def execute(self, userdata):
+
+        return 'ur_in_start_pose'
 
         # Just for debugging:
         pub_ur_path_start = rospy.Publisher("/ur_path_start", PoseStamped, queue_size=1, latch=True)

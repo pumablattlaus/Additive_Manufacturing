@@ -2,7 +2,7 @@
 <arg name="sim" default="false" />
 <arg name="fake_sensor_frame" default="true" />
 <arg name="ur_prefix" default="UR10_l" />
-<arg name="tf_prefix" default="mur620c" />
+<arg name="tf_prefix" default="mur620d" />
 
 <group if="$(arg sim)">
     <rosparam subst_value="true">

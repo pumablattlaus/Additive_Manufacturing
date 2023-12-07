@@ -1,9 +1,9 @@
-#!/usr/bin/env python3.9
+#!/usr/bin/env python3
 
 import rospy
-import tf
+#import tf
 from helper_nodes.control_ur_helper import Control_ur_helper
-from tf import transformations
+from tf import transformations, TransformListener, TransformBroadcaster
 from std_msgs.msg import Int32
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Pose, Twist, Transform, TwistStamped
@@ -190,7 +190,7 @@ class Control_ur():
         return rel_distance
        
     def get_mir_ur_transform(self):
-        tf_listener = tf.TransformListener()
+        tf_listener = TransformListener()
         # wait for transform
         tf_listener.waitForTransform(self.tf_prefix + "base_link", self.tf_prefix + self.ur_prefix + "/base_ideal", rospy.Time(0), rospy.Duration(4.0))
         lin, ang = tf_listener.lookupTransform(self.tf_prefix + "base_link", self.tf_prefix + self.ur_prefix + "/base_ideal", rospy.Time(0))
@@ -207,7 +207,7 @@ class Control_ur():
     def get_roation_ur_ideal_to_base(self):
         """ Get the quaternion, which rotates a pose from frame "ur_ideal" to "ur_base"
         """
-        tf_listener = tf.TransformListener()
+        tf_listener = TransformListener()
         # wait for transform
         tf_listener.waitForTransform(self.tf_prefix + self.ur_prefix + "/base", self.tf_prefix + self.ur_prefix + "/base_ideal", rospy.Time(0), rospy.Duration(4.0))
         lin, q = tf_listener.lookupTransform(self.tf_prefix + self.ur_prefix + "/base", self.tf_prefix + self.ur_prefix + "/base_ideal", rospy.Time(0))
@@ -312,7 +312,7 @@ class Control_ur():
             sensor_angle = transformations.euler_from_quaternion(rot)[2]
             e_phi = ur_target_phi - sensor_angle - math.pi/2
             
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
+        except () as e:
             rospy.logerr_throttle(0.5, "Could not get transform from map to sensor_frame. Error: " + str(e))
             e_phi = 0.0
             sensor_angle = math.pi/2
