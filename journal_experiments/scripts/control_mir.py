@@ -289,9 +289,12 @@ class Control_mir_node():
                 # publish target velocities
                 target_velocity.linear.x = u_v  
                 target_velocity.angular.z = v_w 
-                self.robot_twist_publishers[i].publish(target_velocity)
+                #self.robot_twist_publishers[i].publish(target_velocity)
 
             # publish virtual leader velocity
+            virtual_leader_velocity = Twist()
+            virtual_leader_velocity.linear.x = target_vels[0]
+            virtual_leader_velocity.angular.z = target_omegas[0]
             self.virtual_leader_cmd_vel_publisher.publish(target_velocity)
 
             rate.sleep()

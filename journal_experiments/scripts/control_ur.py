@@ -65,7 +65,7 @@ class Control_ur():
         
         # wait for the subscriber to receive the first pose message
         rospy.loginfo("Waiting for mir cmd_vel message")
-        rospy.wait_for_message(self.mir_cmd_vel_topic, Twist)
+        #rospy.wait_for_message(self.mir_cmd_vel_topic, Twist)
         rospy.loginfo("Received mir cmd_vel message")
         # wait for the mir to start moving
         

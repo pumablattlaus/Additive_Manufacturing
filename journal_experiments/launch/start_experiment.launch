@@ -79,4 +79,12 @@
     <rosparam file="$(find journal_experiments)/config/control_ur.yaml" command="load" subst_value="true"/>
 </group>
 
+<include file="$(find virtual_leader)/launch/virtual_leader.launch">
+</include> 
+
+<include file="$(find virtual_leader)/launch/set_leader_pose.launch">
+    <arg name="robot_pose_topic" value="/$(arg tf_prefix)/mir_pose_stamped_simple"/>
+    <arg name="relative_pose" value="[0.0, 0.0, 0.0]"/>
+</include> 
+
 </launch>
