@@ -10,29 +10,35 @@ import math
 
 class Move_to_start_pose():
 
-    def __init__(self):
-        self.target_vel = Twist()
+    def config(self):
         self.KP = rospy.get_param("~KP", 0.5)
         self.angle_tolerance = rospy.get_param("~angle_tolerance", 0.02)
         self.control_rate = rospy.get_param("~control_rate", 50)
         self.target_pose = rospy.get_param("~target_pose", [2,0,0])
-        self.linear_vel_limit = 0.08
-        self.angular_vel_limit = 0.2
-        self.linear_tolerance = 0.15
         self.cmd_vel_topic = rospy.get_param("~mir_cmd_vel_topic", "/mur620c/cmd_vel")
+        self.mir_pose_topic = rospy.get_param("~mir_pose_topic", "/mur620c/mir_pose_simple")
+        self.linear_vel_limit = rospy.get_param("~linear_vel_limit", 0.1)
+        self.angular_vel_limit =    rospy.get_param("~angular_vel_limit", 0.2)
+        self.initial_linear_tolerance = rospy.get_param("~initial_linear_tolerance", 0.15)
+
+
+    def __init__(self):
+        self.config()
+        self.target_vel = Twist()
+
+        
         rospy.loginfo("cmd_vel_topic: %s", self.cmd_vel_topic)
         
         self.move_base_simple_goal_pub = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=1)
         self.cmd_vel_pub = rospy.Publisher(self.cmd_vel_topic, Twist, queue_size=1)
-        rospy.Subscriber('/mur620c/mir_pose_simple', Pose, self.mir_pose_callback)
+        rospy.Subscriber(self.mir_pose_topic, Pose, self.mir_pose_callback)
         rospy.sleep(0.1)
 
 
     def run(self):
         # wait for pose
-        rospy.loginfo('Waiting for first message from /mur620c/mir_pose_simple...')
-        rospy.wait_for_message('/mur620c/mir_pose_simple', Pose)
-        
+        rospy.loginfo('Waiting for first message from' + self.mir_pose_topic)
+        rospy.wait_for_message(self.mir_pose_topic, Pose)
         
         # send the robot to the target pose using move base action server
                     #print(client.get_result())
@@ -40,12 +46,12 @@ class Move_to_start_pose():
             
         for i in range(0,3):
             # check if the robot is already in position
-            if abs(self.target_pose[1] - self.mir_pose.position.y) < self.linear_tolerance / 2 and abs(self.target_pose[0] - self.mir_pose.position.x) < self.linear_tolerance / 2:
+            if abs(self.target_pose[1] - self.mir_pose.position.y) < self.initial_linear_tolerance / 2 and abs(self.target_pose[0] - self.mir_pose.position.x) < self.initial_linear_tolerance / 2:
                 break
             self.turn_to_target_pose()
             self.move_to_target_pose()
             
-            self.linear_tolerance *= 0.5
+            self.initial_linear_tolerance *= 0.5
             self.angle_tolerance *= 0.5
 
         self.turn_to_target_orientation()
@@ -155,7 +161,7 @@ class Move_to_start_pose():
             
             self.cmd_vel_pub.publish(self.target_vel)
             
-            if linear_error < self.linear_tolerance:
+            if linear_error < self.initial_linear_tolerance:
                 break
         
             rate.sleep()

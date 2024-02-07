@@ -17,7 +17,7 @@ path = Path();
 ur_path = Path();
 # No private parameters are used because there is nodename yet
 active_robots = rospy.get_param("/state_machine/active_robots", 1)
-robot_names = rospy.get_param("/state_machine/robot_names", ["mur620c"])
+robot_names = rospy.get_param("/state_machine/robot_names", ["mur620d"])
 ur_prefixes = rospy.get_param("/state_machine/ur_prefixes", ["UR10_l"])
 relative_positions_x = rospy.get_param("/state_machine/relative_positions_x", [0])
 relative_positions_y = rospy.get_param("/state_machine/relative_positions_y", [0])
@@ -87,6 +87,8 @@ class Move_UR_to_start_pose(smach.State):
 
     def execute(self, userdata):
 
+        #return 'ur_in_start_pose'
+
         # Just for debugging:
         pub_ur_path_start = rospy.Publisher("/ur_path_start", PoseStamped, queue_size=1, latch=True)
         pose_start = PoseStamped()
@@ -107,8 +109,9 @@ class Move_UR_to_start_pose(smach.State):
         # get transformation between ur and mir
         tf_listener = TransformListener()
         # wait for transform
-        tf_listener.waitForTransform(robot_names[0] + "/base_link", robot_names[0] + "/"+ur_prefixes[0]+"/base_ideal", rospy.Time(0), rospy.Duration(4.0))
-        lin, ang = tf_listener.lookupTransform(robot_names[0] + "/base_link", robot_names[0] + "/"+ur_prefixes[0]+"/base_ideal", rospy.Time(0))
+        now = rospy.Time(0)
+        tf_listener.waitForTransform(robot_names[0] + "/base_link", robot_names[0] + "/"+ur_prefixes[0]+"/base_ideal", now, rospy.Duration(4.0))
+        lin, ang = tf_listener.lookupTransform(robot_names[0] + "/base_link", robot_names[0] + "/"+ur_prefixes[0]+"/base_ideal", now)
 
         rospy.loginfo(f"UR start pose orientation: {ur_path.poses[1].pose.orientation}")
         rospy.loginfo(f"ur_prefix is {ur_prefixes[0]}")

@@ -9,8 +9,8 @@ import math
 class Create_path():
 
     def config(self):
-        self.start_pose.position.x = 46.5
-        self.start_pose.position.y = 39.0
+        self.start_pose.position.x = 42.6
+        self.start_pose.position.y = 36.3
         self.point_per_meter = 100
         self.dist = 100
         self.r_ur = 1.0
@@ -26,9 +26,9 @@ class Create_path():
         # self.target_pose = Pose()
         self.config()
         rospy.sleep(0.1)
-        self.path_pub = rospy.Publisher("/mir_path", Path, queue_size=1)
+        self.path_pub = rospy.Publisher("/mir_path", Path, queue_size=1, latch=True)
         rospy.sleep(0.1)
-        self.path_pub_ur = rospy.Publisher("/ur_path", Path, queue_size=1)
+        self.path_pub_ur = rospy.Publisher("/ur_path", Path, queue_size=1, latch=True)
         
         rospy.sleep(0.1)
         

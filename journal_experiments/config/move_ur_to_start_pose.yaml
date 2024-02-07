@@ -1,0 +1,16 @@
+move_ur_to_start_pose:
+  ur_velocity_limit : 0.06
+  ur_angular_velocity_limit :  0.15
+  ur_acceleration_limit : 0.02
+  ur_angular_acceleration_limit :  0.1
+  Kpx : 0.3
+  Kpy :  0.3
+  Kpz :  0.1
+  Kp_phi :  0.3
+  ur_target_tolerance_trans : 0.01
+  ur_target_tolerance_rot : 0.01
+  ur_scanner_angular_offset :  -math.pi
+  mir_angle : 0.0
+  ur_command_topic :  "/mur620d/UR10_r/twist_controller/command_safe"
+  ur_pose_topic :  "/mur620d/UR10_r/ur_calibrated_pose"
+  ur_base_link_frame_id :  "mur620d/UR10_r/base_link"
