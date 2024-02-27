@@ -13,6 +13,7 @@ class ComputeNextTarget():
     def config(self):
         self.control_rate = 100
         self.ur_target_velocity = 0.1
+        self.smoothing_factor = 0.0
 
     def __init__(self):
         rospy.init_node("compute_next_target_node")
@@ -24,6 +25,8 @@ class ComputeNextTarget():
         self.ur_target_path = Path()
         self.current_mir_pose = PoseStamped()
         self.current_ur_pose = PoseStamped()
+        self.interpolated_ur_target = PoseStamped()
+        self.interpolated_mir_target = PoseStamped()
 
         self.mir_path_index = 0
         self.ur_path_index = 0
@@ -56,8 +59,6 @@ class ComputeNextTarget():
         self.ur_path_distances = self.compute_distance_travelled(self.ur_target_path)
         self.mir_path_distances = self.compute_distance_travelled(self.mir_target_path)
 
-        print("ur path distances: " + str(self.ur_path_distances))
-
         rate = rospy.Rate(self.control_rate)
         while not rospy.is_shutdown():
             self.compute_next_target()
@@ -71,14 +72,56 @@ class ComputeNextTarget():
         # check if ur target is reached in this iteration and update ur path index
         self.check_target_reached()
 
+        # interpolate between current and next target
+        self.interpolate_target()
+
         # compute mir velocity to reach next target
         self.compute_mir_velocity()
 
         # broadcast next target
-        self.broadcast_next_target()
+        #self.broadcast_next_target()
+        
+        # broadcast interpolated target
+        self.broadcast_interpolated_target()
 
         # update distance travelled by ur and mir
         self.update_distance_travelled()
+
+    def interpolate_target(self):
+        last_ur_target = self.ur_target_path.poses[self.ur_path_index-1] if self.ur_path_index > 0 else self.ur_target_path.poses[self.ur_path_index]
+        last_mir_target = self.mir_target_path.poses[self.mir_path_index-1] if self.mir_path_index > 0 else self.mir_target_path.poses[self.mir_path_index]
+
+        progress = 1 - (self.ur_path_distances[self.ur_path_index] - (self.ur_distance_travelled +self.ur_target_velocity * (1+self.smoothing_factor) / self.control_rate)) / (self.ur_path_distances[self.ur_path_index] - self.ur_path_distances[self.ur_path_index-1])
+        
+        self.interpolated_ur_target.pose.position.x = last_ur_target.pose.position.x + (self.ur_target.pose.position.x - last_ur_target.pose.position.x) * progress
+        self.interpolated_ur_target.pose.position.y = last_ur_target.pose.position.y + (self.ur_target.pose.position.y - last_ur_target.pose.position.y) * progress
+        self.interpolated_ur_target.pose.position.z = last_ur_target.pose.position.z + (self.ur_target.pose.position.z - last_ur_target.pose.position.z) * progress
+        self.interpolated_ur_target.pose.orientation = self.ur_target.pose.orientation
+
+        self.interpolated_mir_target.pose.position.x = last_mir_target.pose.position.x + (self.mir_target.pose.position.x - last_mir_target.pose.position.x) * progress
+        self.interpolated_mir_target.pose.position.y = last_mir_target.pose.position.y + (self.mir_target.pose.position.y - last_mir_target.pose.position.y) * progress
+        
+        # interpolate orientation
+        last_orientation = transformations.euler_from_quaternion([last_ur_target.pose.orientation.x, last_ur_target.pose.orientation.y, last_ur_target.pose.orientation.z, last_ur_target.pose.orientation.w])[2]
+        target_orientation = transformations.euler_from_quaternion([self.ur_target.pose.orientation.x, self.ur_target.pose.orientation.y, self.ur_target.pose.orientation.z, self.ur_target.pose.orientation.w])[2]
+        q = transformations.quaternion_from_euler(0, 0, last_orientation + (target_orientation - last_orientation) * progress)
+        self.interpolated_mir_target.pose.orientation.x = q[0]
+        self.interpolated_mir_target.pose.orientation.y = q[1]
+        self.interpolated_mir_target.pose.orientation.z = q[2]
+        self.interpolated_mir_target.pose.orientation.w = q[3]
+
+    def broadcast_interpolated_target(self):
+        self.tf_broadcaster.sendTransform((self.interpolated_ur_target.pose.position.x, self.interpolated_ur_target.pose.position.y, self.interpolated_ur_target.pose.position.z),
+                                        (self.interpolated_ur_target.pose.orientation.x, self.interpolated_ur_target.pose.orientation.y, self.interpolated_ur_target.pose.orientation.z, self.interpolated_ur_target.pose.orientation.w),
+                                        rospy.Time.now(),
+                                        "interpolated_ur_target",
+                                        "map")
+        self.tf_broadcaster.sendTransform((self.interpolated_mir_target.pose.position.x, self.interpolated_mir_target.pose.position.y, self.interpolated_mir_target.pose.position.z),
+                                        (self.interpolated_mir_target.pose.orientation.x, self.interpolated_mir_target.pose.orientation.y, self.interpolated_mir_target.pose.orientation.z, self.interpolated_mir_target.pose.orientation.w),
+                                        rospy.Time.now(),
+                                        "interpolated_mir_target",
+                                        "map")
+
 
     def update_distance_travelled(self):
         self.mir_distance_travelled += self.mir_target_velocity / self.control_rate
@@ -93,10 +136,11 @@ class ComputeNextTarget():
 
 
     def check_target_reached(self):
-        if self.ur_path_distances[self.ur_path_index] <= self.ur_distance_travelled + self.ur_target_velocity / self.control_rate:
+        if self.ur_path_distances[self.ur_path_index] <= self.ur_distance_travelled + self.ur_target_velocity * (1+self.smoothing_factor) / self.control_rate:
             self.ur_path_index += 1
-
-        #print("ur path distance: " + str(self.ur_path_distances[self.ur_path_index]) + " ur distance travelled: " + str(self.ur_distance_travelled) )
+            self.mir_path_index = self.ur_path_index
+            # update target poses
+            self.get_target_from_path()
 
     def get_target_from_path(self):
         self.mir_target = self.mir_target_path.poses[self.mir_path_index]
