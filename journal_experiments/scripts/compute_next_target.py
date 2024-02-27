@@ -13,6 +13,7 @@ class ComputeNextTarget():
     def config(self):
         self.control_rate = 100
         self.ur_target_velocity = 0.1
+        self.mir_target_velocity = 0.1
         self.smoothing_factor = 0.0
 
     def __init__(self):
@@ -34,6 +35,7 @@ class ComputeNextTarget():
         self.ur_distance_travelled = 0.0
         self.mir_distance_travelled = 0.0
         self.progress_old = 0.0
+        self.ur_mir_distance_old = math.inf
 
 
         self.tf_broadcaster = TransformBroadcaster()
@@ -79,6 +81,9 @@ class ComputeNextTarget():
         # compute mir velocity to reach next target
         self.compute_mir_velocity()
 
+        # compute distance between mir and ur
+        self.compute_distance_between_mir_and_ur()
+
         # broadcast next target
         #self.broadcast_next_target()
         
@@ -87,6 +92,24 @@ class ComputeNextTarget():
 
         # update distance travelled by ur and mir
         self.update_distance_travelled()
+
+    def compute_distance_between_mir_and_ur(self):
+        distance = math.sqrt((self.interpolated_ur_target.pose.position.x - self.interpolated_mir_target.pose.position.x)**2 + (self.interpolated_ur_target.pose.position.y - self.interpolated_mir_target.pose.position.y)**2)
+        print("distance between mir and ur: " + str(distance))
+
+        # check if mir is moving 
+        if self.mir_target_velocity == 0.0:
+            # keep the current position of mir as long as the distance between mir and ur is decreasing
+            if distance < self.ur_mir_distance_old:
+                pass
+            else:
+                rospy.loginfo("Distance between mir and ur is increasing")
+                self.mir_target_velocity = self.ur_target_velocity
+
+            self.ur_mir_distance_old = distance
+
+            rospy.loginfo("Distance between mir and ur is less than threshold")
+
 
     def interpolate_target(self):
         last_ur_target = self.ur_target_path.poses[self.ur_path_index-1] if self.ur_path_index > 0 else self.ur_target_path.poses[self.ur_path_index]
@@ -139,9 +162,15 @@ class ComputeNextTarget():
     def check_target_reached(self):
         if self.ur_path_distances[self.ur_path_index] <= self.ur_distance_travelled + self.ur_target_velocity * (1+self.smoothing_factor) / self.control_rate:
             self.ur_path_index += 1
-            self.mir_path_index = self.ur_path_index
-            # update target poses
             self.get_target_from_path()
+        
+        if self.mir_path_distances[self.mir_path_index] <= self.mir_distance_travelled + self.mir_target_velocity * (1+self.smoothing_factor) / self.control_rate:       
+            self.mir_path_index += 1
+            self.get_target_from_path()
+
+        # print("mir path index: " + str(self.mir_path_index))
+        # print("mir distance travelled: " + str(self.mir_distance_travelled))
+            
 
     def get_target_from_path(self):
         self.mir_target = self.mir_target_path.poses[self.mir_path_index]
@@ -152,13 +181,17 @@ class ComputeNextTarget():
         delta_progress = self.progress - self.progress_old
         self.progress_old = self.progress
 
+        # detect jump in delta progress when path index is updated
+        if delta_progress < 0:
+            delta_progress = 1 + delta_progress
+
         # distance to travel in this iteration
         distance_to_travel = self.mir_path_distances[self.mir_path_index] - self.mir_path_distances[self.mir_path_index-1] 
 
         # compute mir velocity
         self.mir_target_velocity = distance_to_travel * delta_progress * self.control_rate
 
-        print(self.mir_target_velocity)
+        #print("mir target velocity: " + str(self.mir_target_velocity))
 
     
     def check_path_length(self):
