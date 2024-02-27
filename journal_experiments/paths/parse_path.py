@@ -1,6 +1,4 @@
 #! /usr/bin/env python3
-
-from pathlib import Path
 import rospy
 import math
 import numpy as np
@@ -29,8 +27,8 @@ time_stamps = timeStamp()
 #print(mir_y)
 
 rospy.init_node("parse_path_node")
-mir_pub = rospy.Publisher("/mir_path", Path, queue_size= 1)
-ur_pub = rospy.Publisher("/ur_path", Path, queue_size= 1)
+mir_pub = rospy.Publisher("/mir_path", Path, queue_size= 1, latch=True)
+ur_pub = rospy.Publisher("/ur_path", Path, queue_size= 1, latch=True)
 
 
 mir_path = Path()
@@ -114,11 +112,11 @@ for i in range(0,len(wall_x)-1): #len(robot0_xhat)
     ur_path.poses[i].header.stamp = rospy.Duration(time_stamps[i])
     
 
-rospy.sleep(2)
+rospy.sleep(1)
 mir_pub.publish(mir_path)
-rospy.sleep(5)
+rospy.sleep(1)
 ur_pub.publish(ur_path)
 rospy.loginfo("paths published")
-rospy.sleep(3)
+rospy.sleep(1)
 
 
