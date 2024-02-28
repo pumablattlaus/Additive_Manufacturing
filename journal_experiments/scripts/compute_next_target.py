@@ -14,6 +14,7 @@ class ComputeNextTarget():
         self.control_rate = 100
         self.ur_target_velocity = 0.1
         self.mir_target_velocity = 0.1
+        self.mir_max_velocity = 0.3
         self.smoothing_factor = 0.0
 
     def __init__(self):
@@ -85,7 +86,7 @@ class ComputeNextTarget():
         self.compute_distance_between_mir_and_ur()
 
         # broadcast next target
-        #self.broadcast_next_target()
+        self.broadcast_next_target()
         
         # broadcast interpolated target
         self.broadcast_interpolated_target()
@@ -160,13 +161,23 @@ class ComputeNextTarget():
 
 
     def check_target_reached(self):
-        if self.ur_path_distances[self.ur_path_index] <= self.ur_distance_travelled + self.ur_target_velocity * (1+self.smoothing_factor) / self.control_rate:
-            self.ur_path_index += 1
-            self.get_target_from_path()
+        while not rospy.is_shutdown():
+            if self.ur_path_distances[self.ur_path_index] <= self.ur_distance_travelled + self.ur_target_velocity * (1+self.smoothing_factor) / self.control_rate:
+                self.ur_path_index += 1
+                # self.mir_path_index += 1
+                self.get_target_from_path()
+            else:
+                break
         
-        if self.mir_path_distances[self.mir_path_index] <= self.mir_distance_travelled + self.mir_target_velocity * (1+self.smoothing_factor) / self.control_rate:       
-            self.mir_path_index += 1
-            self.get_target_from_path()
+        while not rospy.is_shutdown():
+            if self.mir_path_distances[self.mir_path_index] <= self.mir_distance_travelled + self.mir_target_velocity * (1+self.smoothing_factor) / self.control_rate:       
+                self.mir_path_index += 1
+                self.get_target_from_path()
+            else:
+                break
+
+        if self.mir_path_index > self.ur_path_index:
+            self.mir_path_index = self.ur_path_index
 
         # print("mir path index: " + str(self.mir_path_index))
         # print("mir distance travelled: " + str(self.mir_distance_travelled))
@@ -190,6 +201,11 @@ class ComputeNextTarget():
 
         # compute mir velocity
         self.mir_target_velocity = distance_to_travel * delta_progress * self.control_rate
+
+        # limit mir velocity
+        if self.mir_target_velocity > self.mir_max_velocity:
+            self.mir_target_velocity = self.mir_max_velocity
+
 
         #print("mir target velocity: " + str(self.mir_target_velocity))
 
