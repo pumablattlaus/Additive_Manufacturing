@@ -35,7 +35,7 @@ class ComputeNextTarget():
 
         self.ur_distance_travelled = 0.0
         self.mir_distance_travelled = 0.0
-        self.progress_old = 0.0
+        self.ur_progress_old = 0.0
         self.ur_mir_distance_old = math.inf
 
 
@@ -86,7 +86,7 @@ class ComputeNextTarget():
         self.compute_distance_between_mir_and_ur()
 
         # broadcast next target
-        self.broadcast_next_target()
+        #self.broadcast_next_target()
         
         # broadcast interpolated target
         self.broadcast_interpolated_target()
@@ -116,20 +116,26 @@ class ComputeNextTarget():
         last_ur_target = self.ur_target_path.poses[self.ur_path_index-1] if self.ur_path_index > 0 else self.ur_target_path.poses[self.ur_path_index]
         last_mir_target = self.mir_target_path.poses[self.mir_path_index-1] if self.mir_path_index > 0 else self.mir_target_path.poses[self.mir_path_index]
 
-        self.progress = 1 - (self.ur_path_distances[self.ur_path_index] - (self.ur_distance_travelled +self.ur_target_velocity * (1+self.smoothing_factor) / self.control_rate)) / (self.ur_path_distances[self.ur_path_index] - self.ur_path_distances[self.ur_path_index-1])
+        self.ur_progress = 1 - (self.ur_path_distances[self.ur_path_index] - (self.ur_distance_travelled +self.ur_target_velocity * (1+self.smoothing_factor) / self.control_rate)) / (self.ur_path_distances[self.ur_path_index] - self.ur_path_distances[self.ur_path_index-1])
         
-        self.interpolated_ur_target.pose.position.x = last_ur_target.pose.position.x + (self.ur_target.pose.position.x - last_ur_target.pose.position.x) * self.progress
-        self.interpolated_ur_target.pose.position.y = last_ur_target.pose.position.y + (self.ur_target.pose.position.y - last_ur_target.pose.position.y) * self.progress
-        self.interpolated_ur_target.pose.position.z = last_ur_target.pose.position.z + (self.ur_target.pose.position.z - last_ur_target.pose.position.z) * self.progress
+        self.interpolated_ur_target.pose.position.x = last_ur_target.pose.position.x + (self.ur_target.pose.position.x - last_ur_target.pose.position.x) * self.ur_progress
+        self.interpolated_ur_target.pose.position.y = last_ur_target.pose.position.y + (self.ur_target.pose.position.y - last_ur_target.pose.position.y) * self.ur_progress
+        self.interpolated_ur_target.pose.position.z = last_ur_target.pose.position.z + (self.ur_target.pose.position.z - last_ur_target.pose.position.z) * self.ur_progress
         self.interpolated_ur_target.pose.orientation = self.ur_target.pose.orientation
 
-        self.interpolated_mir_target.pose.position.x = last_mir_target.pose.position.x + (self.mir_target.pose.position.x - last_mir_target.pose.position.x) * self.progress
-        self.interpolated_mir_target.pose.position.y = last_mir_target.pose.position.y + (self.mir_target.pose.position.y - last_mir_target.pose.position.y) * self.progress
-        
+        # check if two subsequent mir targets are same
+        if self.mir_target.pose.position.x == last_mir_target.pose.position.x and self.mir_target.pose.position.y == last_mir_target.pose.position.y:
+            self.mir_progress = 0.0
+        else:
+            self.mir_progress = 1 - (self.mir_path_distances[self.mir_path_index] - (self.mir_distance_travelled + self.mir_target_velocity * (1+self.smoothing_factor) / self.control_rate)) / (self.mir_path_distances[self.mir_path_index] - self.mir_path_distances[self.mir_path_index-1])
+
+        self.interpolated_mir_target.pose.position.x = last_mir_target.pose.position.x + (self.mir_target.pose.position.x - last_mir_target.pose.position.x) * self.mir_progress
+        self.interpolated_mir_target.pose.position.y = last_mir_target.pose.position.y + (self.mir_target.pose.position.y - last_mir_target.pose.position.y) * self.mir_progress
+
         # interpolate orientation
         last_orientation = transformations.euler_from_quaternion([last_ur_target.pose.orientation.x, last_ur_target.pose.orientation.y, last_ur_target.pose.orientation.z, last_ur_target.pose.orientation.w])[2]
         target_orientation = transformations.euler_from_quaternion([self.ur_target.pose.orientation.x, self.ur_target.pose.orientation.y, self.ur_target.pose.orientation.z, self.ur_target.pose.orientation.w])[2]
-        q = transformations.quaternion_from_euler(0, 0, last_orientation + (target_orientation - last_orientation) * self.progress)
+        q = transformations.quaternion_from_euler(0, 0, last_orientation + (target_orientation - last_orientation) * self.mir_progress)
         self.interpolated_mir_target.pose.orientation.x = q[0]
         self.interpolated_mir_target.pose.orientation.y = q[1]
         self.interpolated_mir_target.pose.orientation.z = q[2]
@@ -189,8 +195,8 @@ class ComputeNextTarget():
 
     def compute_mir_velocity(self):
         # compute change in progress
-        delta_progress = self.progress - self.progress_old
-        self.progress_old = self.progress
+        delta_progress = self.ur_progress - self.ur_progress_old
+        self.ur_progress_old = self.ur_progress
 
         # detect jump in delta progress when path index is updated
         if delta_progress < 0:
